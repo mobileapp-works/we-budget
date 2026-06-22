@@ -1,7 +1,11 @@
-# WE BUDGET - カップル家計簿アプリ
+# WeBudget - カップル家計簿アプリ
 
 ## プロジェクト概要
-カップル（2人）で共有する家計簿アプリ。支出・収入を記録し、2人で家計を管理する。
+カップル（2人）で共有する家計簿アプリ。支出を記録し、レシートOCR・立替精算・固定費自動計上・予算アラートで2人の家計を管理する。
+
+- アプリ名（ストア表示名）: **WeBudget**
+- Bundle ID: **com.mobileappworks.webudget**（変更不可）
+- URL scheme: **webudget://**
 
 ## 技術スタック
 - **フレームワーク**: React Native (Expo / Expo Router)
@@ -32,24 +36,32 @@ npx jest
 eas build --platform ios
 ```
 
-## ディレクトリ構成 (予定)
+## ディレクトリ構成 (予定。詳細は docs/naming_convention.md)
 ```
 src/
-  app/          # Expo Router 画面
+  app/          # Expo Router 画面 ((auth)/ (tabs)/)
   components/   # 共通コンポーネント
   hooks/        # カスタムフック
   lib/          # Supabase クライアント等
   store/        # Zustand ストア
+  constants/    # colors / spacing / typography (docs/ui 由来)
   types/        # 型定義
+  utils/        # ユーティリティ
   locales/      # 翻訳ファイル (ja.json / en.json)
 docs/           # 各フェーズの成果物
 ```
 
+## 成果物（docs/）
+- `requirements.md` 要件定義 / `design.md` 設計 / `naming_convention.md` 命名規則 / `ui/` デザインルール
+
 ## ルール
 - `.skills/GLOBAL_STANDARDS.md` の基準に従う
+- DBは snake_case、クライアント型は camelCase（変換層でマッピング）
 - UI文字列は直書き禁止 (`t('key')` を使う)
 - 固定幅 (px直書き) 禁止。flex / % / useWindowDimensions で組む
-- 全テーブルで RLS 有効化
+- 色・余白・文字は constants/ のトークン経由（直値禁止）
+- 全テーブルで RLS 有効化（再帰回避に get_my_pair_id() ヘルパー）
 - 4状態 (Loading / Empty / Error / Success) を必ず実装
 - SafeAreaView でノッチ・ホームインジケータを回避
 - タップ領域は最低 44x44pt
+- 色だけで損益を伝えない（記号・アイコン併用）

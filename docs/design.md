@@ -1,4 +1,6 @@
-# 設計書
+# 設計書（WeBudget）
+
+> アプリ名: WeBudget / Bundle ID: com.mobileappworks.webudget / scheme: webudget://
 
 ## 1. 画面一覧
 
