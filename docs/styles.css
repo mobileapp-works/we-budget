@@ -1,0 +1,249 @@
+/* ========================================
+   共通スタイル — GitHub Pages公開ドキュメント用
+   要件定義書・設計書・プライバシーポリシー等で共有
+   ======================================== */
+
+:root {
+  --color-primary: #2563EB;
+  --color-primary-light: #DBEAFE;
+  --color-accent: #F59E0B;
+  --color-accent-light: #FEF3C7;
+  --color-success: #16A34A;
+  --color-success-light: #DCFCE7;
+  --color-warning: #D97706;
+  --color-warning-light: #FEF3C7;
+  --color-error: #DC2626;
+  --color-error-light: #FEE2E2;
+  --color-bg: #FFFFFF;
+  --color-bg-secondary: #F8FAFC;
+  --color-bg-code: #F1F5F9;
+  --color-text: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', Roboto, sans-serif;
+  line-height: 1.7;
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+  padding: 32px 16px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  background: var(--color-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 48px 40px;
+}
+
+@media (max-width: 640px) {
+  .container { padding: 24px 16px; border-radius: 0; }
+  body { padding: 0; }
+}
+
+/* ヘッダー */
+.doc-header {
+  border-bottom: 3px solid var(--color-primary);
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+}
+.doc-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+.doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.doc-meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* セクション */
+h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-top: 40px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--color-primary-light);
+}
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+p, li { font-size: 15px; margin-bottom: 8px; }
+ul, ol { padding-left: 20px; margin-bottom: 16px; }
+
+/* テーブル */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 24px;
+  font-size: 14px;
+}
+thead { background: var(--color-bg-secondary); }
+th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--color-border-strong);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+tr:hover td { background: var(--color-bg-secondary); }
+
+/* カード（定義リスト風） */
+.def-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 12px 0;
+}
+.def-card dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.def-card dd {
+  font-size: 15px;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+.def-card dd:last-child { margin-bottom: 0; }
+
+/* コードブロック */
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  background: var(--color-bg-code);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+pre {
+  background: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0 20px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+
+/* バッジ */
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+.badge-high { background: var(--color-error-light); color: var(--color-error); }
+.badge-mid  { background: var(--color-warning-light); color: var(--color-warning); }
+.badge-low  { background: var(--color-success-light); color: var(--color-success); }
+.badge-info { background: var(--color-primary-light); color: var(--color-primary); }
+
+/* チェックリスト */
+.checklist { list-style: none; padding-left: 0; }
+.checklist li {
+  padding: 6px 0 6px 28px;
+  position: relative;
+}
+.checklist li::before {
+  content: '☐';
+  position: absolute;
+  left: 0;
+  color: var(--color-text-muted);
+  font-size: 16px;
+}
+
+/* 遷移図 */
+.flow-diagram {
+  background: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 12px 0 20px;
+}
+
+/* 注意ボックス */
+.note {
+  border-left: 4px solid var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 12px 16px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.note-warn {
+  border-left-color: var(--color-warning);
+  background: var(--color-warning-light);
+}
+
+/* 言語切替 */
+.lang-switch {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.lang-switch button {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-bg);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.lang-switch button.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.section { display: none; }
+.section.active { display: block; }
+
+/* フッター */
+.doc-footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}

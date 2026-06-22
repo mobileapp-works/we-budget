@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>要件定義書 / Requirements — WE BUDGET</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+
+    <div class="lang-switch">
+      <button id="btn-ja" class="active" onclick="switchLang('ja')">日本語</button>
+      <button id="btn-en" onclick="switchLang('en')">English</button>
+    </div>
+
+    <!-- ======================== 日本語 ======================== -->
+    <div id="ja" class="section active">
+      <div class="doc-header">
+        <h1>📋 要件定義書</h1>
+        <div class="doc-meta">
+          <span>📱 WE BUDGET</span>
+          <span>📅 作成日: 2026-06-21</span>
+          <span>🔄 更新日: 2026-06-22</span>
+          <span>👤 taishirou16</span>
+        </div>
+      </div>
+
+      <!-- 1. アプリ概要 -->
+      <h2>1. アプリ概要</h2>
+      <dl class="def-card">
+        <dt>アプリ名（仮）</dt>
+        <dd>WE BUDGET</dd>
+        <dt>ジャンル</dt>
+        <dd>ライフスタイル / ファイナンス</dd>
+        <dt>コンセプト</dt>
+        <dd>カップル（2人）の支出を記録し、立替状況と精算額を一目で把握できる家計簿アプリ。レシート撮影で簡単に記録、固定費は自動計算、変動固定費は入力リマインドで漏れを防ぐ。</dd>
+        <dt>参考アプリ</dt>
+        <dd>OsidOri（カップル家計簿）、B/43（ペア口座）、Zaim（レシート撮影）、Splitwise（割り勘・立替精算）</dd>
+      </dl>
+
+      <!-- 2. ターゲットユーザー -->
+      <h2>2. ターゲットユーザー</h2>
+      <dl class="def-card">
+        <dt>ペルソナ</dt>
+        <dd>同棲・非同棲・夫婦を問わず、2人でお金の管理をしたいカップル全般</dd>
+        <dt>利用シーン</dt>
+        <dd>買い物後のレシート撮影、月末の精算確認、家計の振り返り</dd>
+        <dt>技術リテラシー</dt>
+        <dd>一般的なスマホユーザー（LINE・Instagramを普通に使えるレベル）</dd>
+      </dl>
+
+      <!-- 3. 解決する課題 -->
+      <h2>3. 解決する課題</h2>
+      <dl class="def-card">
+        <dt>ユーザーの課題</dt>
+        <dd>
+          <ol>
+            <li>誰がいくら立て替えたかが曖昧になり、精算時に揉める</li>
+            <li>結局いくら精算すればいいのかすぐにわからない</li>
+            <li>今月いくら使ったか・何に使ったかが見えない</li>
+            <li>家賃など毎月同じ金額の支出を毎回入力するのが面倒</li>
+            <li>光熱費など毎月ある支出の入力を忘れる</li>
+            <li>予算オーバーに気づかず使いすぎてしまう</li>
+          </ol>
+        </dd>
+        <dt>既存の解決策</dt>
+        <dd>Excel / メモアプリ / 個人向け家計簿アプリ / LINEで報告し合う</dd>
+        <dt>本アプリの優位性</dt>
+        <dd>
+          <ul>
+            <li>レシート撮影（OCR）で入力の手間を最小化</li>
+            <li>支払い者（自分 / パートナー / 共同口座）を記録し、立替残高を自動計算</li>
+            <li>固定費の自動計上＋変動固定費のリマインドで入力漏れを防止</li>
+            <li>カテゴリ別のグラフで支出を見える化</li>
+            <li>予算設定＋超過アラートで使いすぎを防止</li>
+          </ul>
+        </dd>
+      </dl>
+
+      <!-- 4. 技術構成 -->
+      <h2>4. 技術構成</h2>
+      <table>
+        <thead><tr><th>項目</th><th>採用技術</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td>対応OS</td><td>iOS（将来Android対応）</td><td></td></tr>
+          <tr><td>フレームワーク</td><td>React Native（Expo / Expo Router）</td><td></td></tr>
+          <tr><td>言語</td><td>TypeScript（strict モード）</td><td></td></tr>
+          <tr><td>バックエンド</td><td>Supabase（Auth / Database / Storage）</td><td></td></tr>
+          <tr><td>ストレージ</td><td>Supabase Storage</td><td>レシート画像保存</td></tr>
+          <tr><td>状態管理</td><td>useState / Zustand / TanStack Query</td><td></td></tr>
+          <tr><td>広告SDK</td><td>Google AdMob</td><td>バナー広告</td></tr>
+          <tr><td>監視</td><td>Sentry</td><td></td></tr>
+          <tr><td>多言語</td><td>i18next + react-i18next</td><td>日本語・英語</td></tr>
+          <tr><td>認証</td><td>Supabase Auth</td><td>メール + Apple Sign-In + Google Sign-In。アカウント削除も実装必須</td></tr>
+          <tr><td>外部AI利用</td><td>Google Cloud Vision API</td><td>レシートOCR。提供元名 + 同意画面が必須</td></tr>
+          <tr><td>プッシュ通知</td><td>Expo Notifications</td><td></td></tr>
+          <tr><td>ビルド・配信</td><td>EAS Build / EAS Submit</td><td></td></tr>
+          <tr><td>オフライン対応</td><td>なし</td><td>オンライン接続必須</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 5. 収益化方針 -->
+      <h2>5. 収益化方針</h2>
+      <dl class="def-card">
+        <dt>収益モデル</dt>
+        <dd>フリーミアム（無料 + 広告 / 課金で広告非表示 + AI機能解放）</dd>
+        <dt>広告種別</dt>
+        <dd>バナー広告（画面下部に常時表示）</dd>
+        <dt>広告非表示オプション</dt>
+        <dd>サブスクリプションまたは買い切り（詳細は収益化フェーズで決定）</dd>
+        <dt>課金特典</dt>
+        <dd>広告非表示 / AI機能の利用（支出分析・アドバイス等）</dd>
+        <dt>価格帯</dt>
+        <dd>収益化フェーズで決定</dd>
+      </dl>
+
+      <!-- 6. 機能一覧 -->
+      <h2>6. 機能一覧</h2>
+
+      <h3>MVP機能</h3>
+      <table>
+        <thead><tr><th>No</th><th>機能名</th><th>概要</th><th>優先度</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>ユーザー認証</td><td>サインアップ / ログイン / ログアウト / アカウント削除</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>2</td><td>カップルペアリング</td><td>招待コードでパートナーと紐づけ</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>3</td><td>レシート撮影・OCR</td><td>カメラでレシートを撮影し、金額・店名を自動読み取り。画像はSupabase Storageに保存</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>4</td><td>支出記録（レシート / 手動）</td><td>金額・カテゴリ・支払い者（自分/パートナー/共同口座）・日付・メモを記録。レシートなしでも手動入力可能</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>5</td><td>立替精算</td><td>負担割合（デフォルト50:50、カスタム設定可）で立替残高を自動計算。好きなタイミングで精算＋月末リマインド</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>6</td><td>共同口座管理</td><td>共同口座への入金額・支出を記録し、負担割合も含めて管理</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>7</td><td>固定費自動計上</td><td>家賃等の毎月固定額を自動で支出に計上</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>8</td><td>変動固定費リマインド</td><td>光熱費等の未入力をプッシュ通知＋アプリ内通知で催促</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>9</td><td>予算設定・超過アラート</td><td>カテゴリ別または全体の月間予算を設定し、超えそうな場合にアラート通知</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>10</td><td>カテゴリ管理</td><td>デフォルトカテゴリ（食費/日用品/交通費/娯楽/光熱費/家賃/通信費/医療/その他）＋カスタムカテゴリの追加・編集</td><td><span class="badge badge-mid">中</span></td></tr>
+          <tr><td>11</td><td>支出グラフ・レポート</td><td>カテゴリ別の支出を円グラフ・棒グラフで表示。月別・週別・カスタム期間で切り替え可能</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>12</td><td>複数通貨対応</td><td>日本円以外の通貨でも支出を記録できる</td><td><span class="badge badge-mid">中</span></td></tr>
+          <tr><td>13</td><td>設定画面</td><td>言語切替 / ダークモード / 通知ON/OFF / プライバシーポリシー / バージョン / ログアウト / アカウント削除</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>14</td><td>バナー広告</td><td>画面下部にAdMobバナー広告を表示</td><td><span class="badge badge-mid">中</span></td></tr>
+          <tr><td>15</td><td>外部AI利用同意画面</td><td>OCR等でAIにデータ送信する前に同意を取得</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td>16</td><td>パートナー通知</td><td>パートナーが支出を記録・精算したときにプッシュ通知で知らせる</td><td><span class="badge badge-mid">中</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>将来機能</h3>
+      <table>
+        <thead><tr><th>No</th><th>機能名</th><th>概要</th><th>想定時期</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>サブスクリプション課金</td><td>サブスク加入で広告非表示 + AI機能解放</td><td>v1.1</td></tr>
+          <tr><td>2</td><td>プロフィール拡充（課金時ヒアリング）</td><td>サブスク解禁時に各自の年収・手取り・貯蓄目標・ライフステージをヒアリング。AI分析の入力データにする</td><td>v1.1</td></tr>
+          <tr><td>3</td><td>AI支出分析</td><td>年収・手取りに対する支出割合の分析、節約アドバイス、負担割合の提案</td><td>v1.1</td></tr>
+          <tr><td>4</td><td>AI貯蓄シミュレーション</td><td>目標貯蓄額に対して現在のペースで達成可能か試算、改善提案</td><td>v1.1</td></tr>
+          <tr><td>5</td><td>カテゴリ自動分類</td><td>店名・商品名からカテゴリを自動判定</td><td>v1.1</td></tr>
+          <tr><td>6</td><td>収入記録</td><td>2人の収入を記録し、収支バランスを表示</td><td>v1.2</td></tr>
+          <tr><td>7</td><td>Android対応</td><td>Android版リリース</td><td>v2.0</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 7. ビジネスルール -->
+      <h2>7. ビジネスルール</h2>
+
+      <h3>7-1. 立替精算ルール</h3>
+      <dl class="def-card">
+        <dt>負担割合</dt>
+        <dd>カップル単位で設定（デフォルト 50:50、例: 60:40 や収入比も可）</dd>
+        <dt>支払い種別</dt>
+        <dd>「自分が払った」「パートナーが払った」「共同口座から払った」の3種類</dd>
+        <dt>計算方法</dt>
+        <dd>立替残高 = 各自が立て替えた合計 − 負担割合で算出した本来の負担額</dd>
+        <dt>精算タイミング</dt>
+        <dd>好きなタイミングで実行可能（精算ボタン → 残高リセット）。月末に未精算がある場合はリマインド通知</dd>
+        <dt>精算方法</dt>
+        <dd>アプリは精算額を表示するのみ。実際の支払いはアプリ外（現金・PayPay等）で行う</dd>
+        <dt>精算履歴</dt>
+        <dd>記録として残す</dd>
+      </dl>
+
+      <h3>7-2. 固定費ルール</h3>
+      <dl class="def-card">
+        <dt>固定費（金額固定）</dt>
+        <dd>毎月同じ日に同じ金額を自動で支出に計上（例: 家賃）</dd>
+        <dt>変動固定費（金額変動）</dt>
+        <dd>毎月の入力期限を設定し、未入力ならリマインド（例: 光熱費、水道代）</dd>
+        <dt>支払い者設定</dt>
+        <dd>固定費ごとに支払い者（自分/パートナー/共同口座）を設定</dd>
+      </dl>
+
+      <h3>7-3. 予算ルール</h3>
+      <dl class="def-card">
+        <dt>設定単位</dt>
+        <dd>カテゴリ別または全体で月間予算を設定</dd>
+        <dt>アラート</dt>
+        <dd>80%到達時に警告アラート、100%超過時に超過アラート</dd>
+        <dt>通知方法</dt>
+        <dd>プッシュ通知＋アプリ内通知の両方</dd>
+      </dl>
+
+      <h3>7-4. 共同口座ルール</h3>
+      <dl class="def-card">
+        <dt>入金記録</dt>
+        <dd>各自がいくら入れたかを記録</dd>
+        <dt>精算対象</dt>
+        <dd>共同口座からの支出は立替精算の対象外（既に共同資金から支払済み）</dd>
+        <dt>残高表示</dt>
+        <dd>共同口座の残高を表示</dd>
+      </dl>
+
+      <h3>7-5. 通知ルール</h3>
+      <dl class="def-card">
+        <dt>支出記録通知</dt>
+        <dd>パートナーが支出を記録したらプッシュ通知</dd>
+        <dt>精算通知</dt>
+        <dd>精算が実行されたら両者にプッシュ通知</dd>
+        <dt>変動固定費リマインド</dt>
+        <dd>入力期限を過ぎたらプッシュ通知＋アプリ内通知</dd>
+        <dt>予算アラート</dt>
+        <dd>80%到達・100%超過時にプッシュ通知＋アプリ内通知</dd>
+        <dt>月末精算リマインド</dt>
+        <dd>未精算の立替があれば月末にプッシュ通知</dd>
+        <dt>通知設定</dt>
+        <dd>種類ごとにON/OFFを設定画面で切り替え可能</dd>
+      </dl>
+
+      <h3>7-6. 編集・削除ルール</h3>
+      <dl class="def-card">
+        <dt>編集権限</dt>
+        <dd>どちらのユーザーでも編集・削除可能（自分・パートナーどちらが入力したものでも）</dd>
+        <dt>変更通知</dt>
+        <dd>編集・削除したら相手にプッシュ通知で知らせる</dd>
+      </dl>
+
+      <h3>7-7. OCRルール</h3>
+      <dl class="def-card">
+        <dt>読み取りフロー</dt>
+        <dd>レシート撮影 → 読み取り結果（金額・店名・日付）をプレビュー表示 → ユーザーが確認・修正 → 保存</dd>
+        <dt>読み取り失敗時</dt>
+        <dd>精度が低い項目は未入力状態で表示し、手動修正を促す</dd>
+        <dt>画像保存</dt>
+        <dd>レシート画像は支出レコードに紐づけてSupabase Storageに保存（後から閲覧可能）</dd>
+      </dl>
+
+      <h3>7-8. 通貨ルール</h3>
+      <dl class="def-card">
+        <dt>通貨選択</dt>
+        <dd>支出ごとに通貨を選択可能（デフォルトはJPY）</dd>
+        <dt>表示通貨</dt>
+        <dd>レポート・精算時の表示通貨はJPY（為替レートは手動入力 or 自動取得を検討）</dd>
+      </dl>
+
+      <h3>7-9. サブスク課金時ヒアリング（将来機能）</h3>
+      <dl class="def-card">
+        <dt>ヒアリング項目</dt>
+        <dd>各自の年収（税込）/ 手取り月収 / 貯蓄目標額 / ライフステージ / 負担割合の希望</dd>
+        <dt>AI分析への活用</dt>
+        <dd>年収比での適正負担割合の提案 / 支出が手取りの何%かの可視化 / 貯蓄目標に対する達成度シミュレーション</dd>
+        <dt>入力ルール</dt>
+        <dd>任意（スキップ可能）、後から設定画面で変更可能</dd>
+        <dt>プライバシー</dt>
+        <dd>収入情報はパートナーには非公開（AI分析の結果のみ共有する設計も検討）</dd>
+      </dl>
+
+      <h3>7-10. ペア解除時のデータ</h3>
+      <dl class="def-card">
+        <dt>データ保持</dt>
+        <dd>ペアを解除しても過去の支出データは各自のアカウントに残る（自分が記録した分は閲覧可能）</dd>
+        <dt>未精算の扱い</dt>
+        <dd>未精算の立替があればペア解除前に精算を促す</dd>
+      </dl>
+
+      <!-- 8. 画面概要 -->
+      <h2>8. 画面概要</h2>
+      <dl class="def-card">
+        <dt>想定画面数</dt>
+        <dd>12〜14画面</dd>
+        <dt>主要な画面</dt>
+        <dd>
+          <ol>
+            <li>ログイン / サインアップ</li>
+            <li>AI利用同意画面（初回のみ）</li>
+            <li>ペアリング（招待コード入力 / 生成）</li>
+            <li>ホーム（今月の支出サマリー＋立替残高＋予算進捗）</li>
+            <li>支出入力（レシート撮影 or 手動入力）</li>
+            <li>支出一覧・履歴（日付順表示、カテゴリフィルタ、レシート画像の閲覧も可能）</li>
+            <li>立替精算画面</li>
+            <li>共同口座管理画面</li>
+            <li>固定費・変動固定費管理</li>
+            <li>予算設定画面</li>
+            <li>レポート・グラフ（月別・週別・カスタム期間）</li>
+            <li>通知一覧</li>
+            <li>設定（通知ON/OFF含む）</li>
+          </ol>
+        </dd>
+      </dl>
+
+      <!-- 9. スケジュール -->
+      <h2>9. スケジュール</h2>
+      <dl class="def-card">
+        <dt>リリース目標</dt>
+        <dd>未定（品質優先で進める）</dd>
+      </dl>
+      <h3>マイルストーン</h3>
+      <ul class="checklist">
+        <li>要件定義完了: 2026-06-21 ✅</li>
+        <li>設計完了: —</li>
+        <li>UIデザイン完了: —</li>
+        <li>実装完了: —</li>
+        <li>テスト完了: —</li>
+        <li>リリース: —</li>
+      </ul>
+    </div>
+
+    <!-- ======================== English ======================== -->
+    <div id="en" class="section">
+      <div class="doc-header">
+        <h1>📋 Requirements Document</h1>
+        <div class="doc-meta">
+          <span>📱 WE BUDGET</span>
+          <span>📅 Created: 2026-06-21</span>
+          <span>🔄 Updated: 2026-06-22</span>
+          <span>👤 taishirou16</span>
+        </div>
+      </div>
+
+      <h2>1. App Overview</h2>
+      <dl class="def-card">
+        <dt>App Name (Tentative)</dt>
+        <dd>WE BUDGET</dd>
+        <dt>Genre</dt>
+        <dd>Lifestyle / Finance</dd>
+        <dt>Concept</dt>
+        <dd>A shared household budget app for couples. Track expenses, see who paid what, auto-calculate reimbursements, and visualize spending by category. Snap receipts for easy logging, auto-record fixed costs, and get reminders for recurring variable bills.</dd>
+        <dt>Reference Apps</dt>
+        <dd>OsidOri (couple budgeting), B/43 (shared account), Zaim (receipt scanning), Splitwise (expense splitting)</dd>
+      </dl>
+
+      <h2>2. Target Users</h2>
+      <dl class="def-card">
+        <dt>Persona</dt>
+        <dd>All couples wanting to manage money together — cohabiting, dating, or married</dd>
+        <dt>Use Cases</dt>
+        <dd>Scanning receipts after shopping, checking settlement at month-end, reviewing household spending</dd>
+        <dt>Technical Literacy</dt>
+        <dd>Average smartphone user (comfortable with LINE, Instagram)</dd>
+      </dl>
+
+      <h2>3. Problem to Solve</h2>
+      <dl class="def-card">
+        <dt>User's Problem</dt>
+        <dd>
+          <ol>
+            <li>Who paid how much becomes unclear, causing disputes at settlement time</li>
+            <li>Hard to know how much to settle at a glance</li>
+            <li>Can't see how much was spent this month or on what</li>
+            <li>Tedious to manually enter fixed costs (rent, etc.) every month</li>
+            <li>Forget to log recurring variable bills (utilities, etc.)</li>
+            <li>Overspend without realizing the budget is exceeded</li>
+          </ol>
+        </dd>
+        <dt>Existing Solutions</dt>
+        <dd>Excel / note apps / personal budgeting apps / reporting via LINE</dd>
+        <dt>Our Advantage</dt>
+        <dd>
+          <ul>
+            <li>Receipt OCR minimizes manual input</li>
+            <li>Track payer (self / partner / shared account) and auto-calculate reimbursement</li>
+            <li>Auto-record fixed costs + reminders for variable recurring bills</li>
+            <li>Visualize spending by category with charts</li>
+            <li>Budget alerts to prevent overspending</li>
+          </ul>
+        </dd>
+      </dl>
+
+      <h2>4. Tech Stack</h2>
+      <table>
+        <thead><tr><th>Item</th><th>Technology</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Target OS</td><td>iOS (Android planned)</td><td></td></tr>
+          <tr><td>Framework</td><td>React Native (Expo / Expo Router)</td><td></td></tr>
+          <tr><td>Language</td><td>TypeScript (strict mode)</td><td></td></tr>
+          <tr><td>Backend</td><td>Supabase (Auth / Database / Storage)</td><td></td></tr>
+          <tr><td>Storage</td><td>Supabase Storage</td><td>Receipt image storage</td></tr>
+          <tr><td>State Management</td><td>useState / Zustand / TanStack Query</td><td></td></tr>
+          <tr><td>Ads SDK</td><td>Google AdMob</td><td>Banner ads</td></tr>
+          <tr><td>Monitoring</td><td>Sentry</td><td></td></tr>
+          <tr><td>i18n</td><td>i18next + react-i18next</td><td>Japanese / English</td></tr>
+          <tr><td>Auth</td><td>Supabase Auth</td><td>Email + Apple Sign-In + Google Sign-In. Account deletion required</td></tr>
+          <tr><td>External AI</td><td>Google Cloud Vision API</td><td>Receipt OCR. Consent screen required</td></tr>
+          <tr><td>Push Notifications</td><td>Expo Notifications</td><td></td></tr>
+          <tr><td>Build / Deploy</td><td>EAS Build / EAS Submit</td><td></td></tr>
+          <tr><td>Offline Support</td><td>None</td><td>Online connection required</td></tr>
+        </tbody>
+      </table>
+
+      <h2>5. Monetization</h2>
+      <dl class="def-card">
+        <dt>Revenue Model</dt>
+        <dd>Freemium (free + ads / paid for ad-free + AI features)</dd>
+        <dt>Ad Types</dt>
+        <dd>Banner ads (bottom of screen)</dd>
+        <dt>Ad-Free Option</dt>
+        <dd>Subscription or one-time purchase (details TBD in monetization phase)</dd>
+        <dt>Premium Benefits</dt>
+        <dd>Ad-free / AI features (spending analysis, advice, etc.)</dd>
+        <dt>Price Range</dt>
+        <dd>TBD in monetization phase</dd>
+      </dl>
+
+      <h2>6. Features</h2>
+      <h3>MVP Features</h3>
+      <table>
+        <thead><tr><th>No</th><th>Feature</th><th>Description</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>User Auth</td><td>Sign up / Log in / Log out / Delete account</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>2</td><td>Couple Pairing</td><td>Link with partner via invite code</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>3</td><td>Receipt Scan &amp; OCR</td><td>Scan receipts to auto-read amount &amp; store name. Images saved to Supabase Storage</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>4</td><td>Expense Entry (Receipt / Manual)</td><td>Record amount, category, payer (self/partner/shared), date, memo. Manual entry without receipt also supported</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>5</td><td>Expense Splitting</td><td>Auto-calculate reimbursement based on split ratio (default 50:50, customizable). Settle anytime + month-end reminder</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>6</td><td>Shared Account</td><td>Track deposits and expenses from shared account with split ratio management</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>7</td><td>Fixed Cost Automation</td><td>Auto-record monthly fixed amounts (e.g., rent)</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>8</td><td>Variable Bill Reminders</td><td>Push + in-app notifications for unlogged recurring bills (utilities, etc.)</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>9</td><td>Budget &amp; Alerts</td><td>Set monthly budgets by category or total, alert when approaching/exceeding limit</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>10</td><td>Category Management</td><td>Default categories (Food/Daily/Transport/Entertainment/Utilities/Rent/Telecom/Medical/Other) + custom categories</td><td><span class="badge badge-mid">Mid</span></td></tr>
+          <tr><td>11</td><td>Charts &amp; Reports</td><td>Pie/bar charts by category. Switch between monthly/weekly/custom periods</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>12</td><td>Multi-Currency</td><td>Record expenses in currencies other than JPY</td><td><span class="badge badge-mid">Mid</span></td></tr>
+          <tr><td>13</td><td>Settings</td><td>Language / Dark mode / Notification ON/OFF / Privacy policy / Version / Logout / Delete account</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>14</td><td>Banner Ads</td><td>AdMob banner ads at bottom of screen</td><td><span class="badge badge-mid">Mid</span></td></tr>
+          <tr><td>15</td><td>AI Consent Screen</td><td>Obtain consent before sending data to external AI (OCR, etc.)</td><td><span class="badge badge-high">High</span></td></tr>
+          <tr><td>16</td><td>Partner Notifications</td><td>Push notification when partner records expense or settles</td><td><span class="badge badge-mid">Mid</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Future Features</h3>
+      <table>
+        <thead><tr><th>No</th><th>Feature</th><th>Description</th><th>Timeline</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Subscription</td><td>Subscribe for ad-free + AI features</td><td>v1.1</td></tr>
+          <tr><td>2</td><td>Profile Expansion (Onboarding)</td><td>On subscription, collect income/savings goals/life stage for AI analysis</td><td>v1.1</td></tr>
+          <tr><td>3</td><td>AI Spending Analysis</td><td>Spending ratio vs income, savings advice, optimal split ratio suggestions</td><td>v1.1</td></tr>
+          <tr><td>4</td><td>AI Savings Simulation</td><td>Estimate if savings goal is achievable at current pace, with improvement suggestions</td><td>v1.1</td></tr>
+          <tr><td>5</td><td>Auto-Categorization</td><td>Auto-detect category from store/product name</td><td>v1.1</td></tr>
+          <tr><td>6</td><td>Income Tracking</td><td>Record both incomes and show income-expense balance</td><td>v1.2</td></tr>
+          <tr><td>7</td><td>Android Support</td><td>Android release</td><td>v2.0</td></tr>
+        </tbody>
+      </table>
+
+      <h2>7. Screens Overview</h2>
+      <dl class="def-card">
+        <dt>Number of Screens</dt>
+        <dd>12–14 screens</dd>
+        <dt>Main Screens</dt>
+        <dd>
+          <ol>
+            <li>Login / Sign Up</li>
+            <li>AI Consent (first time only)</li>
+            <li>Pairing (invite code)</li>
+            <li>Home (monthly summary + reimbursement balance + budget progress)</li>
+            <li>Expense Entry (receipt scan or manual)</li>
+            <li>Expense History (date order, category filter, receipt image view)</li>
+            <li>Settlement Screen</li>
+            <li>Shared Account Management</li>
+            <li>Fixed / Recurring Cost Management</li>
+            <li>Budget Settings</li>
+            <li>Reports &amp; Charts (monthly / weekly / custom)</li>
+            <li>Notifications</li>
+            <li>Settings (incl. notification ON/OFF)</li>
+          </ol>
+        </dd>
+      </dl>
+
+      <h2>8. Schedule</h2>
+      <ul class="checklist">
+        <li>Requirements: 2026-06-21 ✅</li>
+        <li>Design: —</li>
+        <li>UI Design: —</li>
+        <li>Implementation: —</li>
+        <li>Testing: —</li>
+        <li>Release: —</li>
+      </ul>
+    </div>
+
+    <div class="doc-footer">
+      WE BUDGET — Requirements Document v1.0
+    </div>
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
+      document.getElementById(lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+  </script>
+</body>
+</html>
