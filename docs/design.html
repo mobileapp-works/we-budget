@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>設計書 / Design Document — WE BUDGET</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+
+    <div class="lang-switch">
+      <button id="btn-ja" class="active" onclick="switchLang('ja')">日本語</button>
+      <button id="btn-en" onclick="switchLang('en')">English</button>
+    </div>
+
+    <!-- ======================== 日本語 ======================== -->
+    <div id="ja" class="section active">
+      <div class="doc-header">
+        <h1>🏗️ 設計書</h1>
+        <div class="doc-meta">
+          <span>📱 WE BUDGET</span>
+          <span>📅 作成日: 2026-06-22</span>
+          <span>🔄 更新日: 2026-06-22</span>
+          <span>👤 taishirou16</span>
+        </div>
+      </div>
+
+      <!-- 1. 画面一覧 -->
+      <h2>1. 画面一覧</h2>
+      <table>
+        <thead><tr><th>No</th><th>画面名</th><th>画面ID</th><th>役割</th><th>主な表示要素</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>スプラッシュ</td><td><code>splash</code></td><td>起動時にセッション確認して分岐</td><td>ロゴ、ローディング</td></tr>
+          <tr><td>1</td><td>ログイン</td><td><code>login</code></td><td>メール/Apple/Googleでログイン</td><td>ログインフォーム、ソーシャルボタン、「パスワードを忘れた方」</td></tr>
+          <tr><td>2</td><td>サインアップ</td><td><code>signup</code></td><td>新規ユーザー登録</td><td>登録フォーム、ソーシャルボタン</td></tr>
+          <tr><td>2b</td><td>メール確認待ち</td><td><code>verify-email</code></td><td>確認メール送信後の案内</td><td>説明、再送ボタン</td></tr>
+          <tr><td>2c</td><td>パスワードリセット</td><td><code>reset-password</code></td><td>リセットメール送信 / 新パスワード設定</td><td>メール入力 / 新パスワード入力</td></tr>
+          <tr><td>3</td><td>AI利用同意</td><td><code>ai-consent</code></td><td>初回のみ。OCR等のAI利用に同意取得</td><td>説明テキスト、同意ボタン</td></tr>
+          <tr><td>3b</td><td>トラッキング許可(ATT/UMP)</td><td><code>att-consent</code></td><td>広告のためのATT/UMP同意（iOS必須）</td><td>ATTプロンプト、UMP同意フォーム</td></tr>
+          <tr><td>4</td><td>ペアリング</td><td><code>pairing</code></td><td>招待コード生成/入力でパートナー紐づけ</td><td>招待コード表示、入力フォーム</td></tr>
+          <tr><td>5</td><td>ホーム</td><td><code>home</code></td><td>今月のサマリー表示</td><td>通知ベル🔔、支出合計、立替残高カード（タップで精算）、予算進捗バー（タップで予算設定）、直近の支出</td></tr>
+          <tr><td>6</td><td>支出入力</td><td><code>expense-input</code></td><td>レシート撮影 or 手動で支出記録（モーダル）</td><td>入力方法選択、カメラ、OCR結果プレビュー、入力フォーム</td></tr>
+          <tr><td>7</td><td>支出一覧</td><td><code>expense-list</code></td><td>支出履歴の閲覧</td><td>日付順リスト、カテゴリフィルタ</td></tr>
+          <tr><td>8</td><td>支出詳細</td><td><code>expense-detail</code></td><td>個別支出の詳細表示・編集・削除</td><td>金額、カテゴリ、支払い者、レシート画像、編集/削除</td></tr>
+          <tr><td>9</td><td>立替精算</td><td><code>settlement</code></td><td>精算額確認・精算実行・精算履歴</td><td>立替残高、精算ボタン、精算履歴リスト</td></tr>
+          <tr><td>10</td><td>共同口座</td><td><code>shared-account</code></td><td>共同口座の入金・残高管理</td><td>残高、入金リスト＋共同支出明細、入金ボタン</td></tr>
+          <tr><td>11</td><td>固定費管理</td><td><code>fixed-costs</code></td><td>固定費・変動固定費の設定・一覧</td><td>固定費リスト、追加ボタン、リマインド状態</td></tr>
+          <tr><td>12</td><td>予算設定</td><td><code>budget</code></td><td>カテゴリ別/全体の月間予算設定</td><td>カテゴリ別予算バー、設定フォーム</td></tr>
+          <tr><td>13</td><td>レポート</td><td><code>report</code></td><td>グラフで支出を見える化</td><td>円グラフ、棒グラフ、期間切替（月/週/カスタム）</td></tr>
+          <tr><td>14</td><td>通知一覧</td><td><code>notifications</code></td><td>各種通知の閲覧</td><td>通知リスト</td></tr>
+          <tr><td>15</td><td>カテゴリ管理</td><td><code>categories</code></td><td>カスタムカテゴリの追加・編集・削除</td><td>カテゴリリスト、追加ボタン、並び替え</td></tr>
+          <tr><td>16</td><td>プロフィール</td><td><code>profile</code></td><td>自分の情報管理</td><td>名前、アイコン変更、メール、パスワード変更、ペア解除</td></tr>
+          <tr><td>17</td><td>設定</td><td><code>settings</code></td><td>アプリ設定</td><td>言語、ダークモード、通知ON/OFF、ログアウト、アカウント削除</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 2. 画面遷移図 -->
+      <h2>2. 画面遷移図</h2>
+      <dl class="def-card">
+        <dt>ナビゲーション方式</dt>
+        <dd>メイン: Expo Router タブ（5タブ）/ 認証: スタック / モーダル: 支出入力・精算確認・削除確認</dd>
+      </dl>
+      <div class="flow-diagram">── 起動 ──────────────────────────────────────
+  スプラッシュ → セッション有効? ─ はい → メインフロー
+                          └─ いいえ → 認証フロー
+
+── 認証フロー（スタック）────────────────────────
+  ログイン ←→ サインアップ → メール確認待ち
+    │              ↓ (確認・認証成功・初回)
+    ├→ パスワード   AI利用同意（初回のみ）
+    │  リセット         ↓
+    │              ATT/UMP同意（iOS初回・広告のため）
+    │                  ↓
+    │              ※ペアリングはスキップ可（サインアップ時に
+    │                ソロpairが自動生成済み。設定からいつでも招待）
+    ↓                  ↓
+── メインフロー（タブ）──────────────────────────
+
+[🏠 ホーム]  ※ヘッダーに通知ベル🔔（未読バッジ付き）
+  ※ソロモードでは立替残高カードを非表示（代わりに「招待」CTA）
+  ├→ 通知一覧（ベルアイコンから遷移）
+  ├→ 支出詳細（直近の支出リストから遷移）
+  ├→ 立替精算（立替残高カードから遷移）
+  └→ 予算設定（予算進捗バーから遷移）
+
+[📋 履歴]                       [📊 レポート]
+  ├→ 支出詳細                     └→ 期間選択（月/週/カスタム）
+  └→ カテゴリフィルタ
+
+[➕ 入力]（モーダル）
+  ├→ 入力方法選択（「レシートで入力」/「手動で入力」）
+  ├→ レシート撮影 → OCR結果プレビュー → 確認・修正 → 保存
+  └→ 手動入力フォーム → 保存
+
+[⚙️ 設定]
+  ├→ プロフィール（アイコン変更 / パスワード変更 / ペア解除）
+  ├→ ペアリング（未ペアリングの場合）
+  ├→ カテゴリ管理 / 固定費管理 / 共同口座管理 / 通知設定
+  └→ アカウント削除（確認ダイアログ）</div>
+
+      <h3>ソロモード（ペアリング前）</h3>
+      <div class="note">
+        サインアップ時に本人のみの pair を自動生成。立替精算・共同口座・パートナー通知・負担割合は非表示。支出記録・予算・レポート・固定費は1人でも利用可能。設定の「パートナーを招待」からいつでもペアリング可。
+      </div>
+
+      <!-- 3. データモデル -->
+      <h2>3. データモデル（11テーブル）</h2>
+
+      <h3>テーブル: profiles</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>uuid</td><td>ユーザーID</td><td>PK, FK → auth.users ON DELETE CASCADE</td></tr>
+          <tr><td><code>display_name</code></td><td>text</td><td>表示名</td><td>NOT NULL, default: 'ユーザー'（Apple名前非公開時のフォールバック）</td></tr>
+          <tr><td><code>avatar_url</code></td><td>text</td><td>アイコン画像URL</td><td>NULL許容</td></tr>
+          <tr><td><code>pair_id</code></td><td>uuid</td><td>ペアID</td><td>FK → pairs, NOT NULL（サインアップ時に自動生成）</td></tr>
+          <tr><td><code>expo_push_token</code></td><td>text</td><td>プッシュ通知トークン</td><td>NULL許容</td></tr>
+          <tr><td><code>language</code></td><td>text</td><td>言語設定</td><td>NOT NULL, default: 'auto'</td></tr>
+          <tr><td><code>theme</code></td><td>text</td><td>テーマ設定</td><td>NOT NULL, default: 'system'</td></tr>
+          <tr><td><code>ai_consent</code></td><td>boolean</td><td>AI利用同意済み</td><td>NOT NULL, default: false</td></tr>
+          <tr><td colspan="4">created_at / updated_at / deleted_at（共通）</td></tr>
+        </tbody>
+      </table>
+      <div class="note">サインアップ時に DBトリガー <code>handle_new_user</code>（SECURITY DEFINER）で「profiles作成 + ソロpair作成 + デフォルトカテゴリ複製」を原子的に実行。全ユーザーが必ず pair_id を持つ。</div>
+
+      <h3>テーブル: pairs</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>uuid</td><td>ペアID</td><td>PK</td></tr>
+          <tr><td><code>invite_code</code></td><td>text</td><td>招待コード</td><td>UNIQUE, NOT NULL</td></tr>
+          <tr><td><code>user1_id</code></td><td>uuid</td><td>ユーザー1（作成者）</td><td>FK → auth.users ON DELETE SET NULL, NULL許容</td></tr>
+          <tr><td><code>user2_id</code></td><td>uuid</td><td>ユーザー2（参加者）</td><td>FK → auth.users ON DELETE SET NULL, NULL許容</td></tr>
+          <tr><td><code>split_ratio_user1</code></td><td>integer</td><td>負担割合（%）</td><td>NOT NULL, default: 50, CHECK: 1-99</td></tr>
+          <tr><td><code>split_ratio_user2</code></td><td>integer</td><td>負担割合（%）</td><td>NOT NULL, default: 50, CHECK: 1-99</td></tr>
+          <tr><td colspan="4">created_at / updated_at / deleted_at（共通）</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><code>CHECK(split_ratio_user1 + split_ratio_user2 = 100)</code> で合計100%を保証。user1/2_id を NULL 許容にしているのは退会時に匿名化（SET NULL）して共有データを残すため。</div>
+
+      <h3>テーブル: categories</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>uuid</td><td>カテゴリID</td><td>PK</td></tr>
+          <tr><td><code>pair_id</code></td><td>uuid</td><td>ペアID</td><td>FK → pairs ON DELETE CASCADE, NOT NULL</td></tr>
+          <tr><td><code>name</code></td><td>text</td><td>カテゴリ名（カスタム用）</td><td>NULL許容</td></tr>
+          <tr><td><code>name_key</code></td><td>text</td><td>翻訳キー（デフォルト用 例:'category.food'）</td><td>NULL許容</td></tr>
+          <tr><td><code>icon</code> / <code>color</code></td><td>text</td><td>アイコン / カラー</td><td>NOT NULL</td></tr>
+          <tr><td><code>is_default</code></td><td>boolean</td><td>デフォルト由来（削除不可）</td><td>NOT NULL, default: false</td></tr>
+          <tr><td><code>is_hidden</code></td><td>boolean</td><td>非表示にしたか</td><td>NOT NULL, default: false</td></tr>
+          <tr><td><code>sort_order</code></td><td>integer</td><td>並び順</td><td>NOT NULL, default: 0</td></tr>
+        </tbody>
+      </table>
+      <div class="note">デフォルトカテゴリ（食費/日用品/交通費/娯楽/光熱費/家賃/通信費/医療/その他）は <strong>pair作成時に各ペアへ複製</strong>。並び替え・非表示・カスタム追加がペアごとに独立。<code>CHECK(name IS NOT NULL OR name_key IS NOT NULL)</code></div>
+
+      <h3>テーブル: expenses（支出）</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>uuid</td><td>支出ID</td><td>PK</td></tr>
+          <tr><td><code>pair_id</code></td><td>uuid</td><td>ペアID</td><td>FK → pairs ON DELETE CASCADE, NOT NULL</td></tr>
+          <tr><td><code>recorded_by</code></td><td>uuid</td><td>記録者</td><td>FK → auth.users ON DELETE SET NULL, NULL許容</td></tr>
+          <tr><td><code>category_id</code></td><td>uuid</td><td>カテゴリ</td><td>FK → categories ON DELETE RESTRICT, NOT NULL</td></tr>
+          <tr><td><code>amount</code></td><td>numeric(12,2)</td><td>金額</td><td>NOT NULL, CHECK: > 0</td></tr>
+          <tr><td><code>currency</code></td><td>text</td><td>通貨コード</td><td>NOT NULL, default: 'JPY'</td></tr>
+          <tr><td><code>payer_user_id</code></td><td>uuid</td><td>支払いユーザー（個人負担）</td><td>FK → auth.users ON DELETE SET NULL, NULL許容</td></tr>
+          <tr><td><code>is_shared_payment</code></td><td>boolean</td><td>共同口座からの支払いか</td><td>NOT NULL, default: false</td></tr>
+          <tr><td><code>settlement_id</code></td><td>uuid</td><td>精算済みスタンプ（NULL=未精算）</td><td>FK → settlements ON DELETE SET NULL, NULL許容</td></tr>
+          <tr><td><code>expense_date</code></td><td>date</td><td>支出日</td><td>NOT NULL</td></tr>
+          <tr><td><code>description</code> / <code>store_name</code></td><td>text</td><td>メモ / 店名</td><td>NULL許容</td></tr>
+          <tr><td><code>receipt_image_url</code></td><td>text</td><td>レシート画像URL</td><td>NULL許容</td></tr>
+          <tr><td><code>is_fixed_cost</code></td><td>boolean</td><td>固定費自動生成か</td><td>NOT NULL, default: false</td></tr>
+          <tr><td><code>fixed_cost_id</code></td><td>uuid</td><td>元の固定費ID</td><td>FK → fixed_costs ON DELETE SET NULL, NULL許容</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        <strong>制約</strong>:
+        ① <code>CHECK((is_shared_payment AND payer_user_id IS NULL) OR (NOT is_shared_payment AND payer_user_id IS NOT NULL))</code> — 共同/個人払いの排他<br>
+        ② <code>UNIQUE(fixed_cost_id, date_trunc('month', expense_date))</code>（部分）— 固定費の同月二重計上を防止<br>
+        ③ 精算は <code>settlement_id IS NULL</code> のみ集計。精算実行時にスタンプ → 過去日付の後追い入力も取りこぼさない
+      </div>
+
+      <h3>テーブル: fixed_costs（固定費・変動固定費）</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code> / <code>pair_id</code></td><td>uuid</td><td>ID / ペア</td><td>PK / FK CASCADE</td></tr>
+          <tr><td><code>category_id</code></td><td>uuid</td><td>カテゴリ</td><td>FK → categories ON DELETE RESTRICT</td></tr>
+          <tr><td><code>name</code></td><td>text</td><td>名称（家賃等）</td><td>NOT NULL</td></tr>
+          <tr><td><code>type</code></td><td>text</td><td>種別</td><td>CHECK: 'fixed','variable'</td></tr>
+          <tr><td><code>amount</code></td><td>numeric(12,2)</td><td>金額（fixed時必須）</td><td>NULL許容, CHECK: > 0</td></tr>
+          <tr><td><code>payer_user_id</code> / <code>is_shared_payment</code></td><td>uuid / bool</td><td>支払い者</td><td>SET NULL / default false</td></tr>
+          <tr><td><code>billing_day</code></td><td>integer</td><td>計上日</td><td>CHECK: 1-31</td></tr>
+          <tr><td><code>reminder_day</code></td><td>integer</td><td>リマインド日（変動用）</td><td>NULL許容, CHECK: 1-31</td></tr>
+          <tr><td><code>is_active</code></td><td>boolean</td><td>有効か</td><td>NOT NULL, default: true</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><code>CHECK(type='fixed' AND amount IS NOT NULL OR type='variable')</code>。変動固定費の未入力判定: 当月に <code>fixed_cost_id</code> 紐づきの expenses が無ければ未入力 → reminder_day に通知。</div>
+
+      <h3>テーブル: settlements（精算）</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code> / <code>pair_id</code></td><td>uuid</td><td>ID / ペア（CASCADE）</td></tr>
+          <tr><td><code>settled_by</code> / <code>from_user_id</code> / <code>to_user_id</code></td><td>uuid</td><td>実行者 / 払う側 / 受取側（全て SET NULL）</td></tr>
+          <tr><td><code>amount</code> / <code>currency</code></td><td>numeric / text</td><td>精算金額 / 通貨</td></tr>
+          <tr><td><code>settled_at</code></td><td>timestamptz</td><td>精算日時</td></tr>
+        </tbody>
+      </table>
+
+      <h3>テーブル: shared_account（共同口座）</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code> / <code>pair_id</code></td><td>uuid</td><td>ID / ペア</td><td>PK / FK CASCADE</td></tr>
+          <tr><td><code>type</code></td><td>text</td><td>種別</td><td>CHECK: 'deposit','withdrawal'</td></tr>
+          <tr><td><code>user_id</code></td><td>uuid</td><td>入金者/記録者</td><td>FK SET NULL</td></tr>
+          <tr><td><code>amount</code> / <code>currency</code></td><td>numeric / text</td><td>金額 / 通貨</td><td>CHECK: > 0</td></tr>
+          <tr><td><code>transaction_date</code></td><td>date</td><td>取引日</td><td>NOT NULL</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        <strong>役割</strong>: 入金(deposit)と支出計上しない現金移動(withdrawal: ATM引き出し等)専用。共同口座での<strong>買い物は expenses(is_shared_payment=true)に一本化</strong>（二重入力回避）。<br>
+        <strong>残高</strong> = Σ(deposit) − Σ(withdrawal) − Σ(expenses WHERE is_shared_payment=true)（JPY換算）
+      </div>
+
+      <h3>テーブル: budgets（予算）</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code> / <code>pair_id</code></td><td>uuid</td><td>ID / ペア</td><td>PK / FK CASCADE</td></tr>
+          <tr><td><code>category_id</code></td><td>uuid</td><td>カテゴリ（NULLなら全体）</td><td>FK → categories ON DELETE CASCADE</td></tr>
+          <tr><td><code>amount</code> / <code>currency</code></td><td>numeric / text</td><td>月間予算額 / 通貨</td><td>CHECK: > 0</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><code>UNIQUE(pair_id, category_id)</code>（全体予算は category_id IS NULL の部分一意で1件）。多通貨は exchange_rates で予算通貨に換算して集計。</div>
+
+      <h3>テーブル: exchange_rates（為替レート）</h3>
+      <table>
+        <thead><tr><th>カラム名</th><th>型</th><th>説明</th><th>制約</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code> / <code>pair_id</code></td><td>uuid</td><td>ID / ペア</td><td>PK / FK CASCADE</td></tr>
+          <tr><td><code>from_currency</code> / <code>to_currency</code></td><td>text</td><td>元通貨 / 先通貨</td><td>NOT NULL / default 'JPY'</td></tr>
+          <tr><td><code>rate</code></td><td>numeric(12,6)</td><td>レート（1元=X先）</td><td>NOT NULL, CHECK: > 0</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><code>UNIQUE(pair_id, from_currency, to_currency)</code>。MVPは最新の1件を使う簡易方式（支出日時点のレート履歴は持たない）。</div>
+
+      <h3>テーブル: notifications / notification_settings</h3>
+      <div class="note">
+        <strong>notifications</strong>: user_id, pair_id, type（expense_added / expense_edited / expense_deleted / settlement / reminder_variable / budget_warning / budget_exceeded / settlement_reminder）, title, body, data(jsonb), is_read。<br>
+        <strong>notification_settings</strong>: ユーザーごと（UNIQUE(user_id)）に上記種別のON/OFFを保持。全 default: true。
+      </div>
+
+      <h3>RLS（Row Level Security）方針</h3>
+      <table>
+        <thead><tr><th>テーブル</th><th>SELECT</th><th>INSERT</th><th>UPDATE</th><th>DELETE</th></tr></thead>
+        <tbody>
+          <tr><td>profiles</td><td>自分 + パートナー</td><td>自分のみ</td><td>自分のみ</td><td>自分のみ</td></tr>
+          <tr><td>pairs</td><td>自分のペア</td><td>認証ユーザー</td><td>自分のペア</td><td>自分のペア</td></tr>
+          <tr><td>categories</td><td>自分のペア</td><td>自分のペア</td><td>自分のペア</td><td>自分のペア（is_default不可）</td></tr>
+          <tr><td>expenses</td><td>自分のペア <strong>または recorded_by=自分</strong>（解除済pairの自分の記録も可）</td><td>自分のペア</td><td>自分のペア かつ未解除</td><td>自分のペア</td></tr>
+          <tr><td>settlements</td><td>自分のペア</td><td>自分のペア</td><td>—</td><td>—</td></tr>
+          <tr><td>notifications</td><td>自分宛のみ</td><td>サーバーのみ</td><td>自分宛（既読）</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <div class="note note-warn"><strong>RLS再帰回避</strong>: 「同じペア」判定が profiles/pairs を直接サブクエリすると無限再帰。<code>get_my_pair_id()</code> SECURITY DEFINER ヘルパーで pair_id を取得し <code>pair_id = get_my_pair_id()</code> で判定する。</div>
+
+      <h3>データ整合性・退会/解除の方針</h3>
+      <table>
+        <thead><tr><th>項目</th><th>方針</th></tr></thead>
+        <tbody>
+          <tr><td>楽観的ロック</td><td>expenses / fixed_costs / shared_account は updated_at で衝突検知</td></tr>
+          <tr><td>トランザクション</td><td>精算実行は RPC で原子的に実行</td></tr>
+          <tr><td>削除方針</td><td>論理削除（deleted_at）</td></tr>
+          <tr><td>ON DELETE</td><td>pair配下=CASCADE / ユーザー参照=SET NULL（匿名化）/ category参照=RESTRICT</td></tr>
+          <tr><td>退会時</td><td>共有データは pair の資産として保持。ユーザー参照は SET NULL → UIで「退会したユーザー」表示</td></tr>
+          <tr><td>ペア解除時</td><td>元pairは deleted_at で読み取り専用化。各自に新ソロpair発行。recorded_by=自分 の記録は閲覧可（要件7-10）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>立替残高ロジック（RPC）</h3>
+      <div class="flow-diagram">calculate_settlement_balance(pair_id):
+  1. 未精算かつ個人払いの支出を取得
+     WHERE settlement_id IS NULL AND is_shared_payment=false AND deleted_at IS NULL
+  2. 外貨は exchange_rates でJPY換算（未設定は警告）
+  3. user1_paid / user2_paid を集計
+  4. 本来負担 = total × split_ratio / 100
+  5. 精算額 = ABS(user1_paid − user1_should_pay)
+     払う側/受取側を決定
+  返り値: { settlement_amount, from_user_id, to_user_id, currency:'JPY', unconverted_currencies:[] }
+
+execute_settlement(pair_id):  ※トランザクション
+  1. calculate で金額を再計算（クライアント値を信用しない）
+  2. settlements に1件INSERT
+  3. 対象 expenses に settlement_id をスタンプ → 残高リセット</div>
+
+      <!-- 4. API設計 -->
+      <h2>4. API設計（Supabase）</h2>
+      <h3>主なクライアント操作 / RPC</h3>
+      <table>
+        <thead><tr><th>操作</th><th>テーブル/RPC</th><th>メソッド</th></tr></thead>
+        <tbody>
+          <tr><td>支出一覧</td><td>expenses</td><td><code>select('*, categories(*)').eq('pair_id',...).is('deleted_at',null)</code></td></tr>
+          <tr><td>支出更新（楽観ロック）</td><td>expenses</td><td><code>update({...}).eq('id',id).eq('updated_at',prev)</code></td></tr>
+          <tr><td>カテゴリ一覧</td><td>categories</td><td><code>select('*').eq('pair_id',pairId).eq('is_hidden',false).order('sort_order')</code></td></tr>
+          <tr><td>ペア参加</td><td>RPC</td><td><code>join_pair({ invite_code })</code></td></tr>
+          <tr><td>ペア解除</td><td>RPC</td><td><code>leave_pair({ pair_id })</code></td></tr>
+          <tr><td>立替残高計算</td><td>RPC</td><td><code>calculate_settlement_balance({ pair_id })</code></td></tr>
+          <tr><td>精算実行</td><td>RPC</td><td><code>execute_settlement({ pair_id })</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>認証（Supabase Auth）</h3>
+      <ul>
+        <li>メール + Apple Sign-In + Google Sign-In（JWT、AsyncStorage永続化）</li>
+        <li><strong>セッション復元</strong>: 起動時スプラッシュで確認 → ホーム or ログインへ分岐</li>
+        <li><strong>メール確認</strong>: 確認メール必須。サインアップ後に「確認待ち」画面</li>
+        <li><strong>パスワードリセット</strong>（ログイン前）: 「お忘れの方」→ リセットメール → ディープリンク</li>
+        <li><strong>Apple名前非公開</strong>: display_name を 'ユーザー' で初期化、メール非公開も許容</li>
+        <li><strong>アカウント削除</strong>: Edge Function で auth.users 削除（共有データは匿名化保持）</li>
+      </ul>
+
+      <h3>Storage / 外部API / Edge Functions / RPC</h3>
+      <table>
+        <thead><tr><th>種別</th><th>名称</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>Storage</td><td><code>receipts</code> (private) / <code>avatars</code> (public)</td><td>レシート画像 / アイコン</td></tr>
+          <tr><td>外部API</td><td>Google Cloud Vision API</td><td>レシートOCR（Edge Function経由）</td></tr>
+          <tr><td>Edge Fn</td><td><code>ocr-receipt</code></td><td>レシートOCR</td></tr>
+          <tr><td>Edge Fn</td><td><code>auto-generate-fixed-expenses</code></td><td>固定費の月次自動計上（pg_cron）</td></tr>
+          <tr><td>Edge Fn</td><td><code>check-variable-reminders</code></td><td>変動固定費の未入力チェック（日次）</td></tr>
+          <tr><td>Edge Fn</td><td><code>send-push-notification</code></td><td>Expo Push送信</td></tr>
+          <tr><td>Edge Fn</td><td><code>delete-account</code></td><td>退会処理</td></tr>
+          <tr><td>RPC</td><td><code>handle_new_user</code></td><td>profiles+ソロpair+カテゴリ複製</td></tr>
+          <tr><td>RPC</td><td><code>join_pair</code> / <code>leave_pair</code></td><td>ペア参加 / 解除</td></tr>
+          <tr><td>RPC</td><td><code>calculate_settlement_balance</code> / <code>execute_settlement</code></td><td>立替計算 / 精算実行</td></tr>
+        </tbody>
+      </table>
+
+      <h3>通知生成パイプライン（要件#16・7-6・7-7）</h3>
+      <table>
+        <thead><tr><th>トリガー元</th><th>イベント</th><th>通知先</th><th>type</th></tr></thead>
+        <tbody>
+          <tr><td>expenses INSERT</td><td>支出記録</td><td>パートナー</td><td>expense_added</td></tr>
+          <tr><td>expenses UPDATE</td><td>支出編集</td><td>記録者以外</td><td>expense_edited</td></tr>
+          <tr><td>expenses 論理削除</td><td>支出削除</td><td>パートナー</td><td>expense_deleted</td></tr>
+          <tr><td>settlements INSERT</td><td>精算実行</td><td>両者</td><td>settlement</td></tr>
+          <tr><td>check-variable-reminders</td><td>変動固定費未入力</td><td>担当者/両者</td><td>reminder_variable</td></tr>
+          <tr><td>check_budget_threshold</td><td>予算80%/100%</td><td>両者</td><td>budget_warning / budget_exceeded</td></tr>
+          <tr><td>月末cron</td><td>未精算あり</td><td>両者</td><td>settlement_reminder</td></tr>
+        </tbody>
+      </table>
+      <div class="note">生成は全てサーバー側（DBトリガー/Edge Function、service_role）。送信前に受信者の notification_settings を参照しOFFならスキップ。ソロモードではパートナー系通知を生成しない。</div>
+
+      <h3>ペアリング時のデータ統合方針</h3>
+      <div class="note">MVPは「招待した側(user1)のpairに参加側(user2)が合流」。参加者のソロ時代の支出は本人のソロpairに残し新pairには持ち込まない（取り違え回避）。オンボーディングで「招待した人の家計簿に合流します」と明示。</div>
+
+      <!-- 5. 状態管理 -->
+      <h2>5. 状態管理</h2>
+      <dl class="def-card">
+        <dt>グローバル（Zustand）</dt>
+        <dd>user / profile / pair / theme / language</dd>
+        <dt>サーバー状態（TanStack Query）</dt>
+        <dd>expenses / fixed-costs / settlements / shared-account / budgets / categories / notifications / settlement-balance / exchange-rates（staleTime設定）</dd>
+        <dt>ローカル（useState）</dt>
+        <dd>フォーム入力、ローディング、モーダル開閉、カメラ/OCR状態、フィルタ/期間</dd>
+      </dl>
+      <h3>カスタムフック</h3>
+      <table>
+        <thead><tr><th>フック</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>useAuth</code></td><td>認証（signIn/signUp/signOut/deleteAccount）</td></tr>
+          <tr><td><code>useProfile</code></td><td>プロフィール取得・更新・アイコンアップロード</td></tr>
+          <tr><td><code>usePair</code></td><td>ペア（createInvite/joinPair/leavePair）</td></tr>
+          <tr><td><code>useExpenses</code></td><td>支出の取得・操作</td></tr>
+          <tr><td><code>useFixedCosts</code> / <code>useSettlement</code> / <code>useSharedAccount</code></td><td>固定費 / 精算 / 共同口座</td></tr>
+          <tr><td><code>useBudgets</code> / <code>useCategories</code> / <code>useNotifications</code></td><td>予算 / カテゴリ / 通知</td></tr>
+          <tr><td><code>useOCR</code> / <code>useResponsive</code></td><td>レシートOCR / デバイス判定</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 6-11 共通 -->
+      <h2>6. 多言語対応</h2>
+      <div class="note">日本語・英語。デフォルトカテゴリは <code>name_key</code>（例 <code>category.food</code>）をDB格納し <code>t(name_key)</code> で翻訳。カスタムは name をそのまま表示。</div>
+
+      <h2>7. レスポンシブ・iPad対応</h2>
+      <table>
+        <thead><tr><th>デバイス</th><th>幅</th><th>レイアウト</th></tr></thead>
+        <tbody>
+          <tr><td>iPhone SE</td><td>〜374px</td><td>1カラム、コンパクト</td></tr>
+          <tr><td>iPhone 標準</td><td>375〜413px</td><td>1カラム、標準</td></tr>
+          <tr><td>iPhone Plus/Max</td><td>414〜767px</td><td>1カラム、ゆったり</td></tr>
+          <tr><td>iPad</td><td>768px〜</td><td>2カラム or グリッド拡張</td></tr>
+        </tbody>
+      </table>
+
+      <h2>8. 画面状態設計（4状態）</h2>
+      <table>
+        <thead><tr><th>画面</th><th>Loading</th><th>Empty</th><th>Error</th><th>Success</th></tr></thead>
+        <tbody>
+          <tr><td>ホーム</td><td>スケルトン</td><td>入力CTA</td><td>再試行</td><td>サマリー</td></tr>
+          <tr><td>支出一覧</td><td>スケルトン</td><td>入力CTA</td><td>再試行</td><td>リスト</td></tr>
+          <tr><td>立替精算</td><td>スケルトン</td><td>ソロ:招待CTA / ペア:精算なし</td><td>再試行</td><td>残高+履歴</td></tr>
+          <tr><td>レポート</td><td>スケルトン</td><td>データ不足</td><td>再試行</td><td>グラフ</td></tr>
+        </tbody>
+      </table>
+
+      <h2>9. アクセシビリティ</h2>
+      <ul>
+        <li>コントラスト WCAG AA / タップ領域 44×44pt / Dynamic Type追従</li>
+        <li>操作要素に <code>accessibilityLabel</code> / <code>accessibilityRole</code>、色だけで情報を伝えない</li>
+      </ul>
+
+      <h2>10. 監視・エラー検知</h2>
+      <div class="note">Sentry（クラッシュ・JSエラー・DBクエリエラー）。release/dist 紐づけ。重大エラーはメール通知。</div>
+
+      <h2>11. 非機能要件</h2>
+      <table>
+        <thead><tr><th>項目</th><th>方針</th></tr></thead>
+        <tbody>
+          <tr><td>オフライン対応</td><td>なし（オンライン必須）</td></tr>
+          <tr><td>キャッシュ</td><td>TanStack Query（staleTime）</td></tr>
+          <tr><td>エラー処理</td><td>Toast（軽微）/ エラー画面＋再試行（重大）</td></tr>
+          <tr><td>ディープリンク</td><td>招待コード（<code>webudget://pair/CODE</code>）</td></tr>
+          <tr><td>性能 / 画像</td><td>FlatList仮想化 / レシートは1200px幅に圧縮</td></tr>
+          <tr><td>審査対応</td><td>privacyManifests（CA92.1等）、ATT/カメラ/フォト の用途宣言</td></tr>
+          <tr><td>広告</td><td>AdMobバナーを各タブ下部（SafeArea内）。課金非表示は将来</td></tr>
+        </tbody>
+      </table>
+      <div class="note">将来検討（MVP対象外）: 同一レシート二重登録防止 / 為替レート履歴 / 部分精算</div>
+    </div>
+
+    <!-- ======================== English ======================== -->
+    <div id="en" class="section">
+      <div class="doc-header">
+        <h1>🏗️ Design Document</h1>
+        <div class="doc-meta">
+          <span>📱 WE BUDGET</span>
+          <span>📅 Created: 2026-06-22</span>
+          <span>🔄 Updated: 2026-06-22</span>
+          <span>👤 taishirou16</span>
+        </div>
+      </div>
+
+      <h2>1. Screens (18)</h2>
+      <div class="note">Splash, Login, Sign Up, Verify Email, Reset Password, AI Consent, ATT/UMP Consent, Pairing, Home, Expense Input, Expense List, Expense Detail, Settlement, Shared Account, Fixed Costs, Budget, Report, Notifications, Categories, Profile, Settings.</div>
+
+      <h2>2. Navigation</h2>
+      <div class="note">Main: Expo Router tabs (Home / History / Input / Report / Settings). Auth: stack. Splash restores session → Home or Login. Solo mode available before pairing (a solo pair is auto-created on signup).</div>
+
+      <h2>3. Data Model (11 tables)</h2>
+      <div class="note">profiles, pairs, categories, expenses, fixed_costs, settlements, shared_account, budgets, exchange_rates, notifications, notification_settings. Soft delete (deleted_at), optimistic locking (updated_at), RLS per pair via <code>get_my_pair_id()</code> SECURITY DEFINER to avoid recursion. ON DELETE: pair data CASCADE, user refs SET NULL (anonymize), category refs RESTRICT. See <a href="https://github.com/mobileapp-works/we-budget/blob/main/docs/design.md">design.md</a> for full schema.</div>
+
+      <h2>4. API / Logic</h2>
+      <div class="note">Auth: Email + Apple + Google (session restore, email verification, forgot-password, Apple name fallback). RPCs: handle_new_user, join_pair, leave_pair, calculate_settlement_balance, execute_settlement. Settlement uses settlement_id stamping (no time cutoff) so backdated entries are never lost. Shared-account purchases are recorded once as expenses(is_shared_payment=true). Server-side notification pipeline gated by notification_settings; budget 80%/100% via check_budget_threshold trigger.</div>
+
+      <h2>5. State</h2>
+      <div class="note">Zustand (user/profile/pair/theme/language), TanStack Query (all server data with staleTime), useState (forms/loading/modals/OCR).</div>
+
+      <h2>6–11. Common Standards</h2>
+      <div class="note">i18n (ja/en), Responsive (iPhone SE–iPad), 4 Screen States, Accessibility (WCAG AA, 44pt), Sentry monitoring, FlatList performance, App Store compliance (privacy manifests, ATT). Online only.</div>
+    </div>
+
+    <div class="doc-footer">
+      WE BUDGET — Design Document v1.1
+    </div>
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
+      document.getElementById(lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+  </script>
+</body>
+</html>
