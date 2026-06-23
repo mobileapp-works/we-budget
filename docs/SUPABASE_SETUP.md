@@ -238,7 +238,7 @@ create table notification_settings (
 create index expenses_pair_date on expenses (pair_id, expense_date desc) where deleted_at is null;
 create index expenses_pair_settlement on expenses (pair_id, settlement_id) where deleted_at is null;
 create unique index expenses_fixed_month
-  on expenses (fixed_cost_id, date_trunc('month', expense_date))
+  on expenses (fixed_cost_id, (date_trunc('month', expense_date::timestamp)))
   where fixed_cost_id is not null and deleted_at is null;
 create index fixed_costs_pair on fixed_costs (pair_id) where deleted_at is null;
 create index notifications_user on notifications (user_id, created_at desc);
