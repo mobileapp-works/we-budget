@@ -8,4 +8,6 @@ export * from './StateView';
 export * from './CategoryBadge';
 export * from './SegmentedControl';
 export * from './ProgressBar';
+export * from './ScreenHeader';
+export * from './ExpenseRow';
 export * from './ErrorBoundary';

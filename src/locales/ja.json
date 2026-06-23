@@ -157,6 +157,8 @@
     "type": "種別",
     "typeFixed": "固定（毎月同じ金額）",
     "typeVariable": "変動（毎月入力）",
+    "shortFixed": "固定",
+    "shortVariable": "変動",
     "amount": "金額",
     "billingDay": "計上日（毎月）",
     "reminderDay": "入力リマインド日",

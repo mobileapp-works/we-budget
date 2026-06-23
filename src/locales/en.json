@@ -157,6 +157,8 @@
     "type": "Type",
     "typeFixed": "Fixed (same amount monthly)",
     "typeVariable": "Variable (enter monthly)",
+    "shortFixed": "Fixed",
+    "shortVariable": "Variable",
     "amount": "Amount",
     "billingDay": "Billing day (monthly)",
     "reminderDay": "Reminder day",
