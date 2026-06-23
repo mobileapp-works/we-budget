@@ -31,7 +31,7 @@ export default function SignupScreen() {
       { email, password, displayName: displayName.trim() || 'ユーザー' },
       {
         onSuccess: () => router.replace('/(auth)/verify-email'),
-        onError: () => toast.show(t('error.generic'), 'error'),
+        onError: (e) => toast.show(e instanceof Error ? e.message : t('error.generic'), 'error'),
       }
     );
   };

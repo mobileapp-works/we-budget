@@ -23,7 +23,7 @@ export default function LoginScreen() {
   const handleLogin = () => {
     signIn.mutate(
       { email, password },
-      { onError: () => toast.show(t('error.auth'), 'error') }
+      { onError: (e) => toast.show(e instanceof Error ? e.message : t('error.auth'), 'error') }
     );
   };
 

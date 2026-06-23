@@ -30,7 +30,8 @@ declare
   new_pair_id uuid;
   code text;
 begin
-  code := upper(substr(encode(gen_random_bytes(6),'hex'),1,8));
+  -- 招待コード生成（pgcrypto非依存。gen_random_uuid は PG標準）
+  code := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
   insert into pairs (invite_code, user1_id) values (code, new.id) returning id into new_pair_id;
 
   insert into profiles (id, display_name, pair_id)
@@ -194,7 +195,7 @@ declare new_pair uuid; code text;
 begin
   if get_my_pair_id() <> p_pair_id then raise exception 'forbidden'; end if;
   update pairs set deleted_at = now() where id = p_pair_id;
-  code := upper(substr(encode(gen_random_bytes(6),'hex'),1,8));
+  code := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
   insert into pairs (invite_code, user1_id) values (code, auth.uid()) returning id into new_pair;
   update profiles set pair_id = new_pair where id = auth.uid();
 end; $$;
