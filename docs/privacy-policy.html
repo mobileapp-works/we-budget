@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー / Privacy Policy — WeBudget</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="lang-switch">
+      <button id="btn-ja" class="active" onclick="switchLang('ja')">日本語</button>
+      <button id="btn-en" onclick="switchLang('en')">English</button>
+    </div>
+
+    <div id="ja" class="section active">
+      <div class="doc-header">
+        <h1>プライバシーポリシー</h1>
+        <div class="doc-meta"><span>WeBudget</span><span>最終更新: 2026-06-23</span></div>
+      </div>
+      <p>WeBudget（以下「本アプリ」）は、ユーザーのプライバシーを尊重します。本ポリシーは、本アプリが取得・利用する情報について説明します。</p>
+
+      <h2>1. 取得する情報</h2>
+      <ul>
+        <li>アカウント情報（メールアドレス、表示名、プロフィール画像）</li>
+        <li>家計データ（支出・収入・カテゴリ・固定費・予算・精算・レシート画像）</li>
+        <li>端末情報（プッシュ通知トークン、言語・テーマ設定）</li>
+      </ul>
+
+      <h2>2. 利用目的</h2>
+      <ul>
+        <li>家計簿機能（記録・集計・立替精算・予算管理）の提供</li>
+        <li>ペアのパートナー間でのデータ共有</li>
+        <li>通知の送信（パートナーの記録、リマインド、予算アラート）</li>
+        <li>レシートの自動読み取り（OCR）。同意した場合のみ Google Cloud Vision に画像を送信します。</li>
+      </ul>
+
+      <h2>3. 第三者への提供・外部サービス</h2>
+      <ul>
+        <li>データベース・認証・ストレージ: Supabase</li>
+        <li>レシートOCR: Google Cloud Vision（同意時のみ）</li>
+        <li>広告: Google AdMob（トラッキング許可は端末設定で管理できます）</li>
+        <li>エラー監視: Sentry</li>
+      </ul>
+      <p>法令に基づく場合を除き、上記以外の第三者に個人情報を販売・提供しません。</p>
+
+      <h2>4. データの保持と削除</h2>
+      <p>アカウント削除を行うと、あなたの個人情報は削除されます。ただしパートナーと共有した家計データは、相手の記録として匿名化のうえ保持されます。</p>
+
+      <h2>5. お問い合わせ</h2>
+      <p>本ポリシーに関するお問い合わせは、アプリストアの開発者連絡先までご連絡ください。</p>
+    </div>
+
+    <div id="en" class="section">
+      <div class="doc-header">
+        <h1>Privacy Policy</h1>
+        <div class="doc-meta"><span>WeBudget</span><span>Last updated: 2026-06-23</span></div>
+      </div>
+      <p>WeBudget ("the App") respects your privacy. This policy explains what information the App collects and how it is used.</p>
+
+      <h2>1. Information We Collect</h2>
+      <ul>
+        <li>Account info (email, display name, profile image)</li>
+        <li>Budget data (expenses, categories, fixed costs, budgets, settlements, receipt images)</li>
+        <li>Device info (push token, language/theme preferences)</li>
+      </ul>
+
+      <h2>2. How We Use It</h2>
+      <ul>
+        <li>Providing budgeting features (records, totals, reimbursement, budgets)</li>
+        <li>Sharing data between paired partners</li>
+        <li>Sending notifications (partner activity, reminders, budget alerts)</li>
+        <li>Receipt OCR — images are sent to Google Cloud Vision only with your consent</li>
+      </ul>
+
+      <h2>3. Third Parties</h2>
+      <ul>
+        <li>Database/Auth/Storage: Supabase</li>
+        <li>Receipt OCR: Google Cloud Vision (with consent)</li>
+        <li>Ads: Google AdMob (tracking permission is managed in device settings)</li>
+        <li>Error monitoring: Sentry</li>
+      </ul>
+      <p>We do not sell or share your personal information except as required by law.</p>
+
+      <h2>4. Retention &amp; Deletion</h2>
+      <p>Deleting your account removes your personal info. Budget data shared with your partner is retained as their record, with your identity anonymized.</p>
+
+      <h2>5. Contact</h2>
+      <p>For questions about this policy, contact the developer via the app store listing.</p>
+    </div>
+
+    <div class="doc-footer">WeBudget — Privacy Policy</div>
+  </div>
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
+      document.getElementById(lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+  </script>
+</body>
+</html>

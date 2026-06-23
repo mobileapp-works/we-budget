@@ -23,18 +23,28 @@
 
 ## コマンド
 ```bash
-# 開発サーバー起動
+# 依存インストール（TS6とlibのpeer差異のため --legacy-peer-deps）
+npm install --legacy-peer-deps
+
+# 開発サーバー起動（.env の EXPO_PUBLIC_USE_MOCK=true でモック動作）
 npx expo start
 
 # 型チェック
-npx tsc --noEmit
+npm run typecheck   # = tsc --noEmit
 
-# テスト
-npx jest
+# テスト（お金ロジックのユニットテスト）
+npm test            # = jest
+
+# JSバンドル検証
+npx expo export --platform ios
 
 # ビルド (iOS)
 eas build --platform ios
 ```
+
+## 現在の状態
+- モックモードで全画面動作（`src/data/mockBackend.ts`）。Supabaseは未構築。
+- DB構築手順は [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)、実装状況は [docs/implementation_log.md](docs/implementation_log.md)。
 
 ## ディレクトリ構成 (予定。詳細は docs/naming_convention.md)
 ```
