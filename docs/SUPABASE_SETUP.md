@@ -5,20 +5,36 @@
 
 設計の正は [design.md](design.md)。本書はそれを実行可能なSQL/設定に落としたもの。
 
+> ✅ **コード側は実装済み**: SQLは `supabase/migrations/0001〜0003.sql` に、Edge Function雛形は `supabase/functions/` に、
+> アプリの実データ接続は `src/data/supabaseBackend.ts` に用意済み。`src/data/index.ts` は `EXPO_PUBLIC_USE_MOCK`
+> で mock/supabase を自動切替する。**あなたの作業は下記 1〜4（＋8）だけ**。
+
 ---
 
 ## 0. 全体の流れ（チェックリスト）
 
-- [ ] 1. Supabase プロジェクト作成
-- [ ] 2. 環境変数（URL / anon key）を `.env` に設定
-- [ ] 3. SQL（スキーマ + 制約 + インデックス）を実行
-- [ ] 4. RLS を有効化 + ポリシー作成（`get_my_pair_id()` ヘルパー含む）
-- [ ] 5. トリガー（新規ユーザー / updated_at / 通知 / 予算）を作成
-- [ ] 6. RPC（精算・ペア操作）を作成
-- [ ] 7. Storage バケット（receipts / avatars）を作成 + ポリシー
-- [ ] 8. Auth プロバイダ（Email / Apple / Google）を設定
-- [ ] 9. Edge Functions（ocr-receipt / 通知送信 / 固定費自動計上 / アカウント削除）をデプロイ
-- [ ] 10. アプリ側 `supabaseBackend` を実装し `EXPO_PUBLIC_USE_MOCK=false` に
+あなたがやる作業:
+- [ ] 1. Supabase プロジェクト作成（下記の画面ガイド参照）
+- [ ] 2. 環境変数（URL / anon key）を `.env` に設定 → `EXPO_PUBLIC_USE_MOCK=false`
+- [ ] 3. SQL を実行（SQL Editor に `supabase/migrations/0001→0002→0003` を順に貼って実行）
+- [ ] 4. Auth プロバイダ（Email は既定でON。Apple / Google は任意）
+- [ ] 8.（任意・後で）Edge Functions をデプロイ（OCR / Push / アカウント削除）
+
+実装済み（あなたの作業不要）:
+- [x] スキーマ + 制約 + インデックス（0001）
+- [x] RLS + `get_my_pair_id()` + トリガー（updated_at / 新規ユーザー / パートナー通知）+ RPC（精算・ペア）（0002）
+- [x] Storage バケット + ポリシー（0003）
+- [x] アプリ側 `supabaseBackend`（mock/supabase 自動切替）
+
+### プロジェクト作成画面の入力ガイド
+- **Project name**: `we-budget`（任意）
+- **Database password**: 「Generate a password」で生成し、**安全な場所に保存**（CLI/直接DB接続で必要）
+- **Region**: `Northeast Asia (Tokyo)` を選択（日本向けに低遅延）
+- **Security**:
+  - Enable Data API ✅（supabase-js に必要）
+  - Automatically expose new tables ✅のままでOK（全テーブルにRLSを張るので保護される）
+  - Enable automatic RLS は任意（SQLで明示的にRLSを有効化するので不要）
+- 作成後、**Project Settings > API** で `Project URL` と `anon public` key を取得 → `.env` へ。
 
 ---
 
