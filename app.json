@@ -51,7 +51,8 @@
           "cameraPermission": "レシートを撮影するためにカメラを使用します。"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
