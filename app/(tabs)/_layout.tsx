@@ -4,16 +4,23 @@
  */
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Redirect, Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
+import { useSession } from '@/hooks';
 import { radius } from '@/constants';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
+  const { data: session, isLoading } = useSession();
+
+  // セッション確認中は何も描画しない（保護画面を未認証でマウントさせない）
+  if (isLoading) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  // 未ログインなら認証フローへ（useRequireSession が例外を投げる前に弾く）
+  if (!session) return <Redirect href="/(auth)/login" />;
 
   return (
     <Tabs
