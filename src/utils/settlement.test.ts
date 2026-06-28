@@ -77,4 +77,38 @@ describe('calculateSettlementBalance', () => {
     expect(result.settlementAmount).toBe(1500);
     expect(result.unconvertedCurrencies).toContain('USD');
   });
+
+  it('複数支出が混在しても正しく集計する', () => {
+    // user1: 1000+2000=3000, user2: 4000 → 合計7000, 50:50なら各3500
+    // user1 は3500負担すべきだが3000しか払ってない → user1が500払う
+    const expenses = [
+      makeExpense({ payerUserId: 'user-1', amount: 1000 }),
+      makeExpense({ payerUserId: 'user-1', amount: 2000 }),
+      makeExpense({ payerUserId: 'user-2', amount: 4000 }),
+    ];
+    const result = calculateSettlementBalance(expenses, makePair());
+    expect(result.settlementAmount).toBe(500);
+    expect(result.fromUserId).toBe('user-1');
+    expect(result.toUserId).toBe('user-2');
+  });
+
+  it('退会した支払い者(payerUserId=null かつ個人払い)は集計対象外', () => {
+    const expenses = [
+      makeExpense({ payerUserId: 'user-1', amount: 2000 }),
+      makeExpense({ payerUserId: null, isSharedPayment: false, amount: 5000 }), // 匿名化済み
+    ];
+    const result = calculateSettlementBalance(expenses, makePair());
+    // null payer は除外 → user1の2000のみ → user2が1000払う
+    expect(result.settlementAmount).toBe(1000);
+    expect(result.fromUserId).toBe('user-2');
+  });
+
+  it('割合60:40で端数が出ても整数に丸める', () => {
+    // 合計999をuser1全額立替、60:40 → user1負担=599.4 → balance=399.6 → 400に丸め
+    const expenses = [makeExpense({ payerUserId: 'user-1', amount: 999 })];
+    const pair = makePair({ splitRatioUser1: 60, splitRatioUser2: 40 });
+    const result = calculateSettlementBalance(expenses, pair);
+    expect(result.settlementAmount).toBe(400);
+    expect(result.fromUserId).toBe('user-2');
+  });
 });
