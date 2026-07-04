@@ -38,7 +38,7 @@
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#E14B2E"
+        "backgroundColor": "#F86F50"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -66,9 +66,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#E14B2E"
+          "backgroundColor": "#F86F50"
         }
       ]
     ],
