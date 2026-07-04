@@ -16,7 +16,7 @@
     <div id="ja" class="section active">
       <div class="doc-header">
         <h1>プライバシーポリシー</h1>
-        <div class="doc-meta"><span>WeBudget</span><span>最終更新: 2026-06-23</span></div>
+        <div class="doc-meta"><span>WeBudget</span><span>最終更新: 2026-07-05</span></div>
       </div>
       <p>WeBudget（以下「本アプリ」）は、ユーザーのプライバシーを尊重します。本ポリシーは、本アプリが取得・利用する情報について説明します。</p>
 
@@ -32,13 +32,13 @@
         <li>家計簿機能（記録・集計・立替精算・予算管理）の提供</li>
         <li>ペアのパートナー間でのデータ共有</li>
         <li>通知の送信（パートナーの記録、リマインド、予算アラート）</li>
-        <li>レシートの自動読み取り（OCR）。同意した場合のみ Google Cloud Vision に画像を送信します。</li>
+        <li>レシートの自動読み取り（OCR）。同意した場合のみ実行し、画像は端末内で処理され外部サービスには送信されません。</li>
       </ul>
 
       <h2>3. 第三者への提供・外部サービス</h2>
       <ul>
         <li>データベース・認証・ストレージ: Supabase</li>
-        <li>レシートOCR: Google Cloud Vision（同意時のみ）</li>
+        <li>レシートOCR: 端末内で処理（画像は外部サービスに送信しません）</li>
         <li>広告: Google AdMob（トラッキング許可は端末設定で管理できます）</li>
         <li>エラー監視: Sentry</li>
       </ul>
@@ -54,7 +54,7 @@
     <div id="en" class="section">
       <div class="doc-header">
         <h1>Privacy Policy</h1>
-        <div class="doc-meta"><span>WeBudget</span><span>Last updated: 2026-06-23</span></div>
+        <div class="doc-meta"><span>WeBudget</span><span>Last updated: 2026-07-05</span></div>
       </div>
       <p>WeBudget ("the App") respects your privacy. This policy explains what information the App collects and how it is used.</p>
 
@@ -70,13 +70,13 @@
         <li>Providing budgeting features (records, totals, reimbursement, budgets)</li>
         <li>Sharing data between paired partners</li>
         <li>Sending notifications (partner activity, reminders, budget alerts)</li>
-        <li>Receipt OCR — images are sent to Google Cloud Vision only with your consent</li>
+        <li>Receipt OCR — performed on-device with your consent; images never leave your device</li>
       </ul>
 
       <h2>3. Third Parties</h2>
       <ul>
         <li>Database/Auth/Storage: Supabase</li>
-        <li>Receipt OCR: Google Cloud Vision (with consent)</li>
+        <li>Receipt OCR: processed on-device (images are not sent to any external service)</li>
         <li>Ads: Google AdMob (tracking permission is managed in device settings)</li>
         <li>Error monitoring: Sentry</li>
       </ul>
