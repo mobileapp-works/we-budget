@@ -20,7 +20,7 @@ import type {
   UUID,
 } from '@/types/models';
 import { DEFAULT_CATEGORIES } from '@/constants';
-import { calculateSettlementBalance } from '@/utils';
+import { buildRateMap, calculateSettlementBalance, isSettleableExpense } from '@/utils';
 import type {
   Backend,
   SessionContext,
@@ -423,9 +423,11 @@ export const mockBackend: Backend = {
       toUserId: balance.toUserId,
       settledAt: nowIso(),
     };
-    // 対象の未精算・個人払い支出にスタンプ
+    // 対象の未精算・個人払い支出にスタンプ。
+    // 集計に含まれた支出のみ（レート未設定の外貨は残高に入っていないため、スタンプすると立替が消える）
+    const rateMap = buildRateMap(state.rates);
     for (const e of state.expenses) {
-      if (e.settlementId === null && !e.isSharedPayment) {
+      if (isSettleableExpense(e, state.pair, rateMap)) {
         e.settlementId = settlement.id;
       }
     }

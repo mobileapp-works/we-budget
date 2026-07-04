@@ -8,6 +8,33 @@ import { buildRateMap, convertAmount, roundMoney, type RateMap } from './money';
 
 const BASE_CURRENCY = 'JPY';
 
+/** 未精算・個人払い・ペアのどちらかが支払者の支出か（精算の集計候補）。 */
+function isUnsettledPersonalPayment(
+  e: Expense,
+  pair: Pick<Pair, 'user1Id' | 'user2Id'>
+): boolean {
+  if (e.settlementId !== null) return false;
+  if (e.isSharedPayment) return false;
+  return e.payerUserId === pair.user1Id || e.payerUserId === pair.user2Id;
+}
+
+/**
+ * 支出が「今回の精算で確定（settlement_id スタンプ）してよい」対象かを判定する。
+ * calculateSettlementBalance の集計対象と完全に同一条件であること。
+ * レート未設定で JPY へ換算できない支出は精算額に含まれないため、
+ * スタンプしてしまうと立替が請求できないまま消える（レート設定後の次回精算に残す）。
+ */
+export function isSettleableExpense(
+  e: Expense,
+  pair: Pick<Pair, 'user1Id' | 'user2Id'>,
+  rateMap: RateMap
+): boolean {
+  return (
+    isUnsettledPersonalPayment(e, pair) &&
+    convertAmount(e.amount, e.currency, BASE_CURRENCY, rateMap) !== null
+  );
+}
+
 /**
  * 未精算・個人払いの支出から立替残高を計算する。
  *
@@ -40,10 +67,8 @@ export function calculateSettlementBalance(
   let user2Paid = 0;
 
   for (const e of expenses) {
-    // 未精算・個人払いのみ対象（共同口座払いは精算対象外）
-    if (e.settlementId !== null) continue;
-    if (e.isSharedPayment) continue;
-    if (e.payerUserId !== user1Id && e.payerUserId !== user2Id) continue; // 攻撃的防御: 攻撃者/匿名は除外
+    // 未精算・個人払い・ペア支払者のみ対象（共同口座払いは精算対象外）
+    if (!isUnsettledPersonalPayment(e, pair)) continue;
 
     const converted = convertAmount(e.amount, e.currency, BASE_CURRENCY, rateMap);
     if (converted === null) {

@@ -1,4 +1,5 @@
-import { calculateSettlementBalance } from './settlement';
+import { calculateSettlementBalance, isSettleableExpense } from './settlement';
+import { buildRateMap } from './money';
 import { makeExpense, makePair, makeRate } from '@/test-utils/factories';
 
 describe('calculateSettlementBalance', () => {
@@ -110,5 +111,54 @@ describe('calculateSettlementBalance', () => {
     const result = calculateSettlementBalance(expenses, pair);
     expect(result.settlementAmount).toBe(400);
     expect(result.fromUserId).toBe('user-2');
+  });
+});
+
+describe('isSettleableExpense', () => {
+  const pair = makePair();
+  const noRates = buildRateMap([]);
+  const usdRate = buildRateMap([makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })]);
+
+  it('未精算・個人払い・JPYはスタンプ対象', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 3000 });
+    expect(isSettleableExpense(e, pair, noRates)).toBe(true);
+  });
+
+  it('精算済みは対象外', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 3000, settlementId: 'settled-1' });
+    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+  });
+
+  it('共同口座払いは対象外', () => {
+    const e = makeExpense({ payerUserId: null, isSharedPayment: true, amount: 3000 });
+    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+  });
+
+  it('退会者(payerUserId=null)の個人払いは対象外', () => {
+    const e = makeExpense({ payerUserId: null, isSharedPayment: false, amount: 3000 });
+    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+  });
+
+  it('レート未設定の外貨は対象外（精算額に含まれないためスタンプすると立替が消える）', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 20, currency: 'USD' });
+    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+  });
+
+  it('レート設定済みの外貨は対象', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 20, currency: 'USD' });
+    expect(isSettleableExpense(e, pair, usdRate)).toBe(true);
+  });
+
+  it('calculateSettlementBalance の集計対象と一致する（未換算外貨の混在ケース）', () => {
+    // 集計に入った支出だけがスタンプ対象になること（= バグの回帰テスト）
+    const expenses = [
+      makeExpense({ payerUserId: 'user-1', amount: 3000, currency: 'JPY' }),
+      makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD' }), // レートなし→集計外
+    ];
+    const result = calculateSettlementBalance(expenses, pair);
+    expect(result.settlementAmount).toBe(1500); // JPYのみ
+    const stamped = expenses.filter((e) => isSettleableExpense(e, pair, noRates));
+    expect(stamped).toHaveLength(1);
+    expect(stamped[0]?.currency).toBe('JPY'); // USDはスタンプされず次回精算に残る
   });
 });

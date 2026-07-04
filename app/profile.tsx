@@ -6,10 +6,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, TextField, SegmentedControl } from '@/components';
-import { useRequireSession, useProfileActions, usePairActions, useAuthActions } from '@/hooks';
+import {
+  useRequireSession,
+  useProfileActions,
+  usePairActions,
+  useAuthActions,
+  useSettlementBalance,
+  useLocale,
+} from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
+import { formatCurrency } from '@/utils';
 
 type RatioPreset = '50' | '60' | '40';
 
@@ -18,7 +26,9 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const toast = useToast();
+  const locale = useLocale();
   const session = useRequireSession();
+  const balanceQuery = useSettlementBalance();
 
   const { updateProfile } = useProfileActions();
   const { leavePair, updateSplitRatio } = usePairActions();
@@ -56,12 +66,31 @@ export default function ProfileScreen() {
   };
 
   const handleUnpair = () => {
+    const doUnpair = () => leavePair.mutate(undefined, { onSuccess: () => router.back() });
+
+    // 未精算の立替が残っている場合は先に精算を促す（要件: 解除前に精算を促す）
+    const balance = balanceQuery.data;
+    if (balance && balance.settlementAmount > 0) {
+      Alert.alert(
+        t('profile.unpair'),
+        t('profile.unpairUnsettledBody', {
+          amount: formatCurrency(balance.settlementAmount, balance.currency, locale),
+        }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('profile.goSettle'), onPress: () => router.push('/settlement') },
+          { text: t('profile.unpairAnyway'), style: 'destructive', onPress: doUnpair },
+        ]
+      );
+      return;
+    }
+
     Alert.alert(t('profile.unpair'), t('profile.unpairConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('profile.unpair'),
         style: 'destructive',
-        onPress: () => leavePair.mutate(undefined, { onSuccess: () => router.back() }),
+        onPress: doUnpair,
       },
     ]);
   };

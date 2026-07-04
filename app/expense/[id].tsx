@@ -1,6 +1,7 @@
 /** 支出詳細。表示・編集・削除（どちらのユーザーでも可。削除は確認ダイアログ）。 */
 import React from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, StateView, CategoryIcon, useCategoryName } from '@/components';
@@ -23,9 +24,12 @@ export default function ExpenseDetailScreen() {
 
   const expense = expenseQuery.data;
 
+  const isSettled = expense?.settlementId !== null && expense?.settlementId !== undefined;
+
   const confirmDelete = () => {
     if (!expense) return;
-    Alert.alert(t('expense.editTitle'), t('expense.deleteConfirm'), [
+    // 精算済みの支出は削除しても過去の精算額に反映されないことを明示する
+    Alert.alert(t('expense.editTitle'), isSettled ? t('expense.deleteConfirmSettled') : t('expense.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -45,6 +49,16 @@ export default function ExpenseDetailScreen() {
       >
         {expense ? (
           <ScrollView contentContainerStyle={styles.scroll}>
+            {/* 精算済み注意（編集・削除しても過去の精算額は変わらない） */}
+            {isSettled ? (
+              <Card style={styles.noticeCard}>
+                <Ionicons name="information-circle" size={20} color={colors.warning} />
+                <Text style={[typography.footnote, styles.noticeText, { color: colors.textSecondary }]}>
+                  {t('expense.settledNotice')}
+                </Text>
+              </Card>
+            ) : null}
+
             {/* 金額 */}
             <Card backgroundColor={colors.coralSoft} style={styles.amountCard}>
               <CategoryIcon icon={getCategory(expense.categoryId)?.icon ?? 'pricetag'} color={getCategory(expense.categoryId)?.color ?? colors.primary} size={48} />
@@ -96,6 +110,8 @@ function DetailRow({ label, value, last }: { label: string; value: string; last?
 
 const styles = StyleSheet.create({
   scroll: { padding: spacing.md, gap: spacing.md },
+  noticeCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  noticeText: { flex: 1 },
   amountCard: { alignItems: 'center' },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm },
   receipt: { width: '100%', height: 200, borderRadius: radius.md, resizeMode: 'cover' },
