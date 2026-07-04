@@ -181,3 +181,19 @@ export interface SettlementBalance {
   /** レート未設定で換算できなかった通貨 */
   unconvertedCurrencies: string[];
 }
+
+/**
+ * レシートOCRの解析結果。
+ * Edge Function から得た生テキスト（rawText）を `parseReceiptText` で構造化したもの。
+ * 各項目は抽出できなければ null（ユーザーが確認・補正する前提）。
+ */
+export interface OcrResult {
+  /** 合計金額。抽出できなければ null。 */
+  amount: number | null;
+  /** 店名（先頭行の推定）。 */
+  storeName: string | null;
+  /** 支出日（'YYYY-MM-DD'）。 */
+  date: ISODate | null;
+  /** Vision が返した全文（デバッグ・再解析用）。 */
+  rawText: string;
+}

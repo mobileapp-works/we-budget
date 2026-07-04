@@ -23,7 +23,8 @@ export type ColorToken =
   | 'success'
   | 'warning'
   | 'error'
-  | 'info';
+  | 'info'
+  | 'scrim';
 
 export type ColorPalette = Record<ColorToken, string>;
 
@@ -47,6 +48,7 @@ export const lightColors: ColorPalette = {
   warning: '#B45309',
   error: '#DC2626',
   info: '#0F766E',
+  scrim: 'rgba(0,0,0,0.45)', // 画像上のローディング等、コンテンツを覆う半透明レイヤー
 };
 
 /** ダークモード（ニュートラルダーク） */
@@ -69,6 +71,7 @@ export const darkColors: ColorPalette = {
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#2DD4BF',
+  scrim: 'rgba(0,0,0,0.55)', // 画像上のローディング等、コンテンツを覆う半透明レイヤー
 };
 
 export const palettes = {

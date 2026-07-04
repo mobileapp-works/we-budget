@@ -4,7 +4,7 @@
  * レシートOCRはSupabase Edge Function（Phase4）。現状は画像添付＋手動入力に対応。
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -18,6 +18,7 @@ import {
   useCategories,
   useExpense,
   useExpenseActions,
+  useReceiptOcr,
 } from '@/hooks';
 import { usePreferencesStore } from '@/store/preferencesStore';
 import { useToast } from '@/providers/ToastProvider';
@@ -42,6 +43,7 @@ export default function ExpenseInputScreen() {
   const resolveName = useCategoryName();
   const existing = useExpense(editing ? id : '');
   const { addExpense, updateExpense } = useExpenseActions();
+  const ocr = useReceiptOcr();
   const aiConsent = usePreferencesStore((s) => s.aiConsent);
 
   const isPaired = session.pair.user2Id !== null;
@@ -90,7 +92,17 @@ export default function ExpenseInputScreen() {
     return base;
   }, [isPaired, session.partner, t]);
 
-  /** レシート撮影。AI未同意なら同意画面へ誘導。 */
+  /** OCR結果をフォームへ反映（抽出できた項目のみ上書き）。 */
+  const applyOcr = (result: { amount: number | null; storeName: string | null; date: string | null }) => {
+    if (result.amount !== null) setAmount(String(result.amount));
+    if (result.storeName) setStore(result.storeName);
+    if (result.date) {
+      const d = new Date(result.date);
+      if (!Number.isNaN(d.getTime())) setDate(d);
+    }
+  };
+
+  /** レシート撮影 → Edge Function でOCR → 金額・店名・日付を自動入力。AI未同意なら同意画面へ誘導。 */
   const handleScanReceipt = async () => {
     if (!aiConsent) {
       router.push('/ai-consent');
@@ -102,12 +114,22 @@ export default function ExpenseInputScreen() {
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.6 });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-      // TODO(Phase4): Edge Function `ocr-receipt` に送って金額・店名・日付を自動入力
-      toast.show(t('expense.ocrReview'), 'info');
-      setStep('form');
-    }
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setImageUri(asset.uri);
+    setStep('form');
+
+    // 撮影画像を端末内OCR（ML Kit）にかけ、抽出結果でフォームを自動入力する。
+    ocr.mutate(asset.uri, {
+      onSuccess: (data) => {
+        applyOcr(data);
+        // 何も抽出できなければ読み取り失敗、少しでも拾えたら確認を促す。
+        const gotSomething = data.amount !== null || data.storeName || data.date;
+        toast.show(gotSomething ? t('expense.ocrReview') : t('expense.ocrFailed'), gotSomething ? 'info' : 'error');
+      },
+      onError: () => toast.show(t('expense.ocrFailed'), 'error'),
+    });
   };
 
   const handleSave = () => {
@@ -190,7 +212,17 @@ export default function ExpenseInputScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.receipt} accessibilityLabel="receipt" />
+            <View style={styles.receiptWrap}>
+              <Image source={{ uri: imageUri }} style={styles.receipt} accessibilityLabel="receipt" />
+              {ocr.isPending ? (
+                <View style={[styles.ocrOverlay, { backgroundColor: colors.scrim }]}>
+                  <ActivityIndicator color={colors.primaryText} />
+                  <Text style={[typography.subhead, styles.ocrOverlayText, { color: colors.primaryText }]}>
+                    {t('expense.ocrProcessing')}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           ) : null}
 
           <TextField
@@ -337,7 +369,16 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.md },
   chooseWrap: { flex: 1, justifyContent: 'center', padding: spacing.lg },
   chooseTitle: { textAlign: 'center', marginBottom: spacing.lg },
-  receipt: { width: '100%', height: 160, borderRadius: radius.md, marginBottom: spacing.md, resizeMode: 'cover' },
+  receiptWrap: { marginBottom: spacing.md, borderRadius: radius.md, overflow: 'hidden' },
+  receipt: { width: '100%', height: 160, resizeMode: 'cover' },
+  ocrOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  ocrOverlayText: { marginLeft: spacing.xs },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.md },
   chip: {
     paddingHorizontal: spacing.md,

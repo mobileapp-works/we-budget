@@ -4,3 +4,4 @@ export * from './budget';
 export * from './sharedAccount';
 export * from './date';
 export * from './validation';
+export * from './receipt';

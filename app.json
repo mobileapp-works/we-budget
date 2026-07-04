@@ -70,6 +70,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#F86F50"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.5"
+          }
+        }
       ]
     ],
     "experiments": {

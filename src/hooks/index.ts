@@ -12,3 +12,4 @@ export * from './useExchangeRates';
 export * from './useProfilePair';
 export * from './useLocale';
 export * from './useExpenseHelpers';
+export * from './useReceiptOcr';

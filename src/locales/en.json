@@ -49,7 +49,7 @@
   },
   "aiConsent": {
     "title": "About receipt scanning",
-    "body": "Receipt auto-scan (OCR) uses Google Cloud Vision. Captured images are sent externally for analysis. This feature is available only if you agree.",
+    "body": "Receipt auto-scan (OCR) runs entirely on your device. Captured images are never sent anywhere — the text is read locally on your phone. Enable this feature?",
     "agree": "Agree and continue",
     "decline": "Not now (manual entry only)"
   },
