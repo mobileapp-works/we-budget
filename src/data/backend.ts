@@ -86,6 +86,8 @@ export interface Backend {
 
   // --- プロフィール ---
   updateProfile(patch: Partial<Pick<Profile, 'displayName' | 'avatarUrl' | 'aiConsent'>>): Promise<Profile>;
+  /** Expo Push Token を profiles に保存する（プッシュ配信の宛先）。 */
+  registerPushToken(token: string): Promise<void>;
 
   // --- ペア ---
   createInvite(): Promise<string>; // 招待コードを返す

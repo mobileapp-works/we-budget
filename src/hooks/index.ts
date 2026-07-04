@@ -13,3 +13,4 @@ export * from './useProfilePair';
 export * from './useLocale';
 export * from './useExpenseHelpers';
 export * from './useReceiptOcr';
+export * from './usePushRegistration';

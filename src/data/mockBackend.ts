@@ -295,6 +295,12 @@ export const mockBackend: Backend = {
     return { ...profile };
   },
 
+  async registerPushToken(token) {
+    await delay(60);
+    const profile = profileOf(state.currentUserId);
+    if (profile) profile.expoPushToken = token;
+  },
+
   async createInvite() {
     await delay();
     return state.pair.inviteCode;

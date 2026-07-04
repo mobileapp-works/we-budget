@@ -109,6 +109,13 @@ export const supabaseBackend: Backend = {
     return toProfile(data);
   },
 
+  async registerPushToken(token) {
+    const sb = requireSupabase();
+    const { userId } = await context();
+    const { error } = await sb.from('profiles').update({ expo_push_token: token }).eq('id', userId);
+    if (error) throw error;
+  },
+
   // --- ペア ---
   async createInvite() {
     const sb = requireSupabase();

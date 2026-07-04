@@ -78,6 +78,12 @@
             "deploymentTarget": "15.5"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#F86F50"
+        }
       ]
     ],
     "experiments": {
