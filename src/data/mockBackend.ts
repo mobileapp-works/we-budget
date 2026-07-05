@@ -267,6 +267,14 @@ export const mockBackend: Backend = {
     return buildSession();
   },
 
+  async signInWithIdToken(provider) {
+    await delay();
+    // モックでは実トークン検証はせず、デモユーザーとしてログインする。
+    state.currentUserId = ME;
+    state.email = `demo+${provider}@webudget.app`;
+    return buildSession();
+  },
+
   async signUp(email) {
     await delay();
     // デモでは登録後すぐログイン可能（本番はメール確認が必要）

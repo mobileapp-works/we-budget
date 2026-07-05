@@ -79,6 +79,8 @@ export interface Backend {
   // --- 認証・セッション ---
   getSession(): Promise<SessionContext | null>;
   signIn(email: string, password: string): Promise<SessionContext>;
+  /** Apple / Google のネイティブ ID トークンでサインイン（無ければ自動でアカウント作成）。 */
+  signInWithIdToken(provider: 'apple' | 'google', token: string, nonce?: string): Promise<SessionContext>;
   signUp(email: string, password: string, displayName: string): Promise<void>;
   signOut(): Promise<void>;
   sendPasswordReset(email: string): Promise<void>;

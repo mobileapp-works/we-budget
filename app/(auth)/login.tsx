@@ -1,5 +1,5 @@
 /** ログイン画面。メール/Apple/Google でログイン。 */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,16 +9,26 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuthActions } from '@/hooks';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
+import { IS_MOCK } from '@/lib/env';
+import { OAuthCancelledError, isAppleAuthAvailable, signInWithApple, signInWithGoogle } from '@/lib/oauth';
+
+type OAuthProvider = 'apple' | 'google';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
   const toast = useToast();
-  const { signIn } = useAuthActions();
+  const { signIn, signInWithProvider } = useAuthActions();
 
   const [email, setEmail] = useState('demo@webudget.app');
   const [password, setPassword] = useState('password');
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
+
+  useEffect(() => {
+    isAppleAuthAvailable().then(setAppleAvailable);
+  }, []);
 
   const handleLogin = () => {
     signIn.mutate(
@@ -26,6 +36,31 @@ export default function LoginScreen() {
       { onError: (e) => toast.show(e instanceof Error ? e.message : t('error.auth'), 'error') }
     );
   };
+
+  const handleOAuth = async (provider: OAuthProvider) => {
+    setOauthLoading(provider);
+    try {
+      // モックではネイティブ SDK を呼ばずデモユーザーでログインする。
+      let token = 'mock';
+      if (!IS_MOCK) {
+        const cred = provider === 'apple' ? await signInWithApple() : await signInWithGoogle();
+        token = cred.token;
+      }
+      signInWithProvider.mutate(
+        { provider, token },
+        { onError: (e) => toast.show(e instanceof Error ? e.message : t('error.auth'), 'error') }
+      );
+    } catch (e) {
+      if (!(e instanceof OAuthCancelledError)) {
+        toast.show(e instanceof Error ? e.message : t('error.auth'), 'error');
+      }
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
+  // Apple はネイティブが使える iOS のみ表示（モック時はデモ確認のため常時表示）。
+  const showApple = IS_MOCK || appleAvailable;
 
   return (
     <Screen withBanner={false}>
@@ -64,18 +99,26 @@ export default function LoginScreen() {
             <View style={[styles.line, { backgroundColor: colors.border }]} />
           </View>
 
-          <Button
-            title={t('auth.continueWithApple')}
-            variant="secondary"
-            left={<Ionicons name="logo-apple" size={18} color={colors.textPrimary} />}
-            onPress={handleLogin}
-          />
-          <View style={{ height: spacing.sm }} />
+          {showApple ? (
+            <>
+              <Button
+                title={t('auth.continueWithApple')}
+                variant="secondary"
+                loading={oauthLoading === 'apple'}
+                disabled={oauthLoading !== null}
+                left={<Ionicons name="logo-apple" size={18} color={colors.textPrimary} />}
+                onPress={() => handleOAuth('apple')}
+              />
+              <View style={{ height: spacing.sm }} />
+            </>
+          ) : null}
           <Button
             title={t('auth.continueWithGoogle')}
             variant="secondary"
+            loading={oauthLoading === 'google'}
+            disabled={oauthLoading !== null}
             left={<Ionicons name="logo-google" size={18} color={colors.textPrimary} />}
-            onPress={handleLogin}
+            onPress={() => handleOAuth('google')}
           />
 
           <View style={styles.footer}>

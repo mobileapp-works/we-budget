@@ -74,6 +74,13 @@ export const supabaseBackend: Backend = {
     return buildSession();
   },
 
+  async signInWithIdToken(provider, token, nonce) {
+    const sb = requireSupabase();
+    const { error } = await sb.auth.signInWithIdToken({ provider, token, nonce });
+    if (error) throw error;
+    return buildSession();
+  },
+
   async signUp(email, password, displayName) {
     const sb = requireSupabase();
     const { error } = await sb.auth.signUp({ email, password, options: { data: { display_name: displayName } } });

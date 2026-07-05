@@ -40,6 +40,14 @@ export function useAuthActions() {
     },
   });
 
+  const signInWithProvider = useMutation({
+    mutationFn: ({ provider, token, nonce }: { provider: 'apple' | 'google'; token: string; nonce?: string }) =>
+      backend.signInWithIdToken(provider, token, nonce),
+    onSuccess: (session) => {
+      qc.setQueryData(queryKeys.session, session);
+    },
+  });
+
   const signUp = useMutation({
     mutationFn: ({ email, password, displayName }: { email: string; password: string; displayName: string }) =>
       backend.signUp(email, password, displayName),
@@ -65,5 +73,5 @@ export function useAuthActions() {
     },
   });
 
-  return { signIn, signUp, signOut, sendPasswordReset, deleteAccount };
+  return { signIn, signInWithProvider, signUp, signOut, sendPasswordReset, deleteAccount };
 }

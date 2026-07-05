@@ -5,7 +5,7 @@
 
 設計の正は [design.md](design.md)。本書はそれを実行可能なSQL/設定に落としたもの。
 
-> ✅ **コード側は実装済み**: SQLは `supabase/migrations/0001〜0005.sql` に、Edge Function雛形は `supabase/functions/` に、
+> ✅ **コード側は実装済み**: SQLは `supabase/migrations/0001〜0006.sql` に、Edge Function雛形は `supabase/functions/` に、
 > アプリの実データ接続は `src/data/supabaseBackend.ts` に用意済み。`src/data/index.ts` は `EXPO_PUBLIC_USE_MOCK`
 > で mock/supabase を自動切替する。**あなたの作業は下記 1〜4（＋8）だけ**。
 
@@ -17,7 +17,7 @@
 - [ ] 1. Supabase プロジェクト作成（下記の画面ガイド参照）
 - [ ] 2. 環境変数（URL / anon key）を `.env` に設定 → `EXPO_PUBLIC_USE_MOCK=false`
 - [ ] 3. SQL を実行（SQL Editor に `supabase/migrations/0001→0002→0003` を順に貼って実行）
-- [ ] 4. Auth プロバイダ（Email は既定でON。Apple / Google は任意）
+- [ ] 4. Auth プロバイダ（Email は既定でON。**Apple / Google は §7.1 の手順**でネイティブ有効化＋dev build 再作成）
 - [ ] 8.（任意・後で）Edge Functions をデプロイ（OCR / Push / アカウント削除）
 
 実装済み（あなたの作業不要）:
@@ -459,9 +459,28 @@ insert into storage.buckets (id, name, public) values ('avatars','avatars',true)
 ## 7. Auth プロバイダ
 
 - **Email**: 有効化。Confirm email を ON（メール確認フロー）。
-- **Apple**: Apple Developer で Service ID / Key を作成し、Supabase Auth に設定。Redirect: `https://<project>.supabase.co/auth/v1/callback`。アプリの scheme `webudget://` をディープリンクに登録。
-- **Google**: GCP で OAuth クライアント作成、Supabase に Client ID/Secret 設定。
 - パスワードリセット / メール確認のリダイレクトに `webudget://` を許可リストへ追加。
+
+### 7.1 Apple / Google ログイン（ネイティブ・`signInWithIdToken` 方式）
+
+クライアントはネイティブ SDK で **ID トークン**を取得し、Supabase の `signInWithIdToken` に渡す（Webリダイレクト不要）。
+コードは実装済み（`src/lib/oauth.ts` / ログイン画面のボタン）。**dev build 必須**（Expo Go 不可。モックでは押すとデモユーザーでログイン）。
+
+**Apple（iOS）**:
+1. Apple Developer の App ID `com.mobileappworks.webudget` で **Sign in with Apple** capability を有効化（app.json は `usesAppleSignIn: true` + `expo-apple-authentication` プラグイン設定済み）。
+2. Supabase → Authentication → Providers → **Apple を Enable**。**Authorized Client IDs** に Bundle ID `com.mobileappworks.webudget` を追加（ネイティブはこの値でトークンの aud を検証。Service ID/Secret は web フロー用で今回は不要）。
+
+**Google**:
+1. GCP → APIs & Services → Credentials で OAuth クライアントIDを作成:
+   - **iOS**（Bundle ID = `com.mobileappworks.webudget`）→ iOS クライアントID と reversed client ID を取得。
+   - **Web application** → Web クライアントID/Secret を取得（`webClientId` として使用。Supabase 側の検証にも使う）。
+   - （Android 配信するなら Android クライアント: パッケージ名 + SHA-1 も作成）。
+2. `app.json` の `@react-native-google-signin/google-signin` プラグインの **`iosUrlScheme`** を reversed iOS client ID（`com.googleusercontent.apps.xxxx`）に置換（現状プレースホルダ `REPLACE_WITH_REVERSED_IOS_CLIENT_ID`）。
+3. `.env` に設定: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`（Webクライアント）/ `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`（iOSクライアント）。
+4. Supabase → Authentication → Providers → **Google を Enable**。Client ID/Secret に **Web クライアント**を入力し、**Authorized Client IDs** に Web と iOS のクライアントIDを追加。
+5. **dev build を再作成**（ネイティブ設定を変えたため）。`eas build --profile development` など。
+
+> まとめ（ユーザー作業）: ①Apple capability + Supabase Apple 有効化 ②GCP で iOS/Web クライアント作成 ③app.json の iosUrlScheme 置換 ④.env に web/ios client id ⑤Supabase Google 有効化 + Authorized Client IDs ⑥dev build 再作成。
 
 ---
 
