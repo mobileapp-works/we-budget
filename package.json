@@ -2,6 +2,13 @@
   "name": "webudget",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["@react-native-ml-kit/text-recognition"]
+      }
+    }
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
