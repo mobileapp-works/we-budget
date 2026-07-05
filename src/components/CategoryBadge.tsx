@@ -3,7 +3,7 @@
  * デフォルトカテゴリは name_key を翻訳、カスタムは name をそのまま表示する。
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
@@ -25,13 +25,32 @@ interface CategoryIconProps {
   size?: number;
 }
 
-/** カテゴリの丸アイコン。 */
+/** icon がIonicons名ではなく画像URI（カスタム写真）かどうか。 */
+export function isCategoryImage(icon: string): boolean {
+  return /^(file|https?|content|data|ph|assets-library):/i.test(icon);
+}
+
+/** カテゴリの丸アイコン。カスタム写真（URI）なら画像、それ以外は Ionicons を表示。 */
 export function CategoryIcon({ icon, color, size = 40 }: CategoryIconProps) {
+  const isImage = isCategoryImage(icon);
   return (
     <View
-      style={[styles.iconCircle, { width: size, height: size, borderRadius: radius.full, backgroundColor: color }]}
+      style={[
+        styles.iconCircle,
+        {
+          width: size,
+          height: size,
+          borderRadius: radius.full,
+          backgroundColor: isImage ? undefined : color,
+          overflow: 'hidden',
+        },
+      ]}
     >
-      <Ionicons name={(icon as keyof typeof Ionicons.glyphMap) ?? 'pricetag'} size={size * 0.5} color="#FFFFFF" />
+      {isImage ? (
+        <Image source={{ uri: icon }} style={{ width: size, height: size }} resizeMode="cover" />
+      ) : (
+        <Ionicons name={(icon as keyof typeof Ionicons.glyphMap) ?? 'pricetag'} size={size * 0.5} color="#FFFFFF" />
+      )}
     </View>
   );
 }

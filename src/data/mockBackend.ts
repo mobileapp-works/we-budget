@@ -309,6 +309,17 @@ export const mockBackend: Backend = {
     if (profile) profile.expoPushToken = token;
   },
 
+  async uploadAvatar(image) {
+    await delay();
+    // モックは Storage が無いのでローカルURIをそのまま使う。
+    return image.uri;
+  },
+
+  async uploadCategoryIcon(image) {
+    await delay();
+    return image.uri;
+  },
+
   async createInvite() {
     await delay();
     return state.pair.inviteCode;
@@ -338,9 +349,12 @@ export const mockBackend: Backend = {
     return { ...state.pair };
   },
 
-  async listCategories() {
+  async listCategories(includeHidden = false) {
     await delay(60);
-    return state.categories.filter((c) => !c.isHidden).sort((a, b) => a.sortOrder - b.sortOrder).map((c) => ({ ...c }));
+    return state.categories
+      .filter((c) => includeHidden || !c.isHidden)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((c) => ({ ...c }));
   },
 
   async addCategory(input: CategoryInput) {

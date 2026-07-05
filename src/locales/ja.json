@@ -204,11 +204,18 @@
   "categories": {
     "title": "カテゴリ管理",
     "add": "カテゴリを追加",
+    "edit": "カテゴリを編集",
     "name": "カテゴリ名",
     "icon": "アイコン",
+    "choosePhoto": "写真を選ぶ",
+    "photoPermission": "写真へのアクセスを許可してください",
     "color": "色",
     "hide": "非表示にする",
     "show": "表示する",
+    "shown": "カテゴリを再表示しました",
+    "hideConfirmTitle": "このカテゴリを非表示にしますか？",
+    "hideConfirmBody": "非表示にすると入力候補に表示されなくなります。記録済みの支出はそのまま残り、下の「非表示のカテゴリ」からいつでも再表示できます。",
+    "hiddenSection": "非表示のカテゴリ",
     "cannotDeleteDefault": "デフォルトのカテゴリは削除できません（非表示にできます）"
   },
   "profile": {

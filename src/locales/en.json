@@ -204,11 +204,18 @@
   "categories": {
     "title": "Categories",
     "add": "Add category",
+    "edit": "Edit category",
     "name": "Category name",
     "icon": "Icon",
+    "choosePhoto": "Choose a photo",
+    "photoPermission": "Please allow photo access",
     "color": "Color",
     "hide": "Hide",
     "show": "Show",
+    "shown": "Category is visible again",
+    "hideConfirmTitle": "Hide this category?",
+    "hideConfirmBody": "It won't appear as a choice when adding expenses. Past records stay, and you can show it again anytime from “Hidden categories” below.",
+    "hiddenSection": "Hidden categories",
     "cannotDeleteDefault": "Default categories can't be deleted (you can hide them)"
   },
   "profile": {

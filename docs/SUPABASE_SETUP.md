@@ -449,10 +449,15 @@ end; $$;
 -- バケット作成（Dashboard or SQL）
 insert into storage.buckets (id, name, public) values ('receipts','receipts',false);
 insert into storage.buckets (id, name, public) values ('avatars','avatars',true);
+insert into storage.buckets (id, name, public) values ('category-icons','category-icons',true);
 ```
 
 - `receipts`（private）: ペアのユーザーのみ読み書き。パスは `{pair_id}/{expense_id}.jpg` 等にし、ポリシーで `pair_id = get_my_pair_id()` を判定。
-- `avatars`（public）: 読み取りは public、書き込みは本人のみ（パス `{user_id}.jpg`）。
+- `avatars`（public）: 読み取りは public、書き込みは本人のみ（パス `{user_id}/...`）。
+- `category-icons`（public）: カスタムのカテゴリ写真。読み取りは public、書き込みは自分のペアのみ（パス `{pair_id}/...`）。ペアで共有表示する。
+
+> バケット + ポリシーは `supabase/migrations/0003_storage.sql`（receipts / avatars）と `0007_category_icons_storage.sql`（category-icons）で作成。
+> アップロードはクライアント実装済み（`supabaseBackend.uploadAvatar` / `uploadCategoryIcon`）。ImagePicker の base64 を Uint8Array に変換し `storage.upload` → 公開URLを DB（`avatar_url` / `categories.icon`）に保存する。
 
 ---
 

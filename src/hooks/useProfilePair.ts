@@ -1,6 +1,7 @@
 /** プロフィール更新・ペア操作のフック（セッションを更新する）。 */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { backend } from '@/data';
+import type { ImageUpload } from '@/data';
 import { queryKeys } from '@/lib/queryClient';
 import { useRequireSession } from './useSession';
 import type { Profile } from '@/types/models';
@@ -17,7 +18,18 @@ export function useProfileActions() {
     },
   });
 
-  return { updateProfile };
+  // 画像を Storage にアップロード → 返ってきた公開URLを avatar_url に保存する。
+  const changeAvatar = useMutation({
+    mutationFn: async (image: ImageUpload) => {
+      const url = await backend.uploadAvatar(image);
+      return backend.updateProfile({ avatarUrl: url });
+    },
+    onSuccess: (profile) => {
+      qc.setQueryData(queryKeys.session, { ...session, profile });
+    },
+  });
+
+  return { updateProfile, changeAvatar };
 }
 
 export function usePairActions() {

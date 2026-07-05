@@ -22,3 +22,16 @@ export const DEFAULT_CATEGORIES: readonly DefaultCategory[] = [
   { key: 'medical', nameKey: 'category.medical', icon: 'medkit', color: '#EF4444' },
   { key: 'other', nameKey: 'category.other', icon: 'ellipsis-horizontal', color: '#94A3B8' },
 ] as const;
+
+/**
+ * カテゴリ作成・編集で選べる Ionicons のアイコン候補。
+ * 先頭にデフォルトカテゴリのアイコンを含め、「今のアイコンも再度選べる」ようにする。
+ * すべて @expo/vector-icons の Ionicons に存在する名前。
+ */
+export const CATEGORY_ICON_CHOICES: readonly string[] = [
+  'restaurant', 'cart', 'bus', 'game-controller', 'flash', 'home', 'wifi', 'medkit',
+  'ellipsis-horizontal', 'cafe', 'fast-food', 'pizza', 'wine', 'beer', 'basket', 'gift',
+  'car', 'airplane', 'train', 'bicycle', 'shirt', 'cut', 'fitness', 'barbell',
+  'paw', 'book', 'school', 'musical-notes', 'film', 'tv', 'phone-portrait', 'card',
+  'heart', 'bandage', 'flower', 'leaf', 'cash', 'wallet', 'pricetag', 'star',
+] as const;

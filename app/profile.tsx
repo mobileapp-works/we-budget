@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const session = useRequireSession();
   const balanceQuery = useSettlementBalance();
 
-  const { updateProfile } = useProfileActions();
+  const { updateProfile, changeAvatar } = useProfileActions();
   const { leavePair, updateSplitRatio } = usePairActions();
   const { sendPasswordReset } = useAuthActions();
 
@@ -50,13 +50,22 @@ export default function ProfileScreen() {
   const handleChangeAvatar = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6 });
-    if (!result.canceled && result.assets[0]) {
-      updateProfile.mutate(
-        { avatarUrl: result.assets[0].uri },
-        { onSuccess: () => toast.show(t('profile.saved'), 'success') }
-      );
-    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+    if (result.canceled || !result.assets[0]?.base64) return;
+    const asset = result.assets[0];
+    changeAvatar.mutate(
+      { uri: asset.uri, base64: asset.base64!, contentType: asset.mimeType ?? 'image/jpeg' },
+      {
+        onSuccess: () => toast.show(t('profile.saved'), 'success'),
+        onError: () => toast.show(t('error.generic'), 'error'),
+      }
+    );
   };
 
   const handleChangePassword = () => {
@@ -111,7 +120,7 @@ export default function ProfileScreen() {
               <Ionicons name="person" size={36} color={colors.primary} />
             </View>
           )}
-          <Button title={t('profile.changeAvatar')} variant="text" fullWidth={false} onPress={handleChangeAvatar} />
+          <Button title={t('profile.changeAvatar')} variant="text" fullWidth={false} onPress={handleChangeAvatar} loading={changeAvatar.isPending} />
         </View>
 
         <Card>

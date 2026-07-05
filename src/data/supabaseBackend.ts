@@ -34,6 +34,33 @@ async function context(): Promise<{ userId: UUID; pairId: UUID }> {
   return { userId, pairId: data.pair_id };
 }
 
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/**
+ * base64 文字列を Uint8Array にデコードする。
+ * RN/Hermes で確実に動くよう atob 等に依存しない自前実装。
+ * Storage.upload は ArrayBufferView を受け付けるためこれをそのまま渡す。
+ */
+function base64ToBytes(base64: string): Uint8Array {
+  const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
+  const outLen = Math.floor((clean.length * 3) / 4);
+  const bytes = new Uint8Array(outLen);
+  let pos = 0;
+  let buffer = 0;
+  let bits = 0;
+  for (let i = 0; i < clean.length; i++) {
+    const val = B64_CHARS.indexOf(clean[i]!);
+    if (val === -1) continue;
+    buffer = (buffer << 6) | val;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes[pos++] = (buffer >> bits) & 0xff;
+    }
+  }
+  return bytes;
+}
+
 async function buildSession(): Promise<SessionContext> {
   const sb = requireSupabase();
   const { data: auth } = await sb.auth.getUser();
@@ -123,6 +150,31 @@ export const supabaseBackend: Backend = {
     if (error) throw error;
   },
 
+  // --- 画像アップロード ---
+  async uploadAvatar(image) {
+    const sb = requireSupabase();
+    const { userId } = await context();
+    // パス先頭フォルダは user_id（avatars の書き込みポリシー準拠）。
+    const path = `${userId}/avatar_${Date.now()}.jpg`;
+    const { error } = await sb.storage
+      .from('avatars')
+      .upload(path, base64ToBytes(image.base64), { contentType: image.contentType, upsert: true });
+    if (error) throw error;
+    return sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+  },
+
+  async uploadCategoryIcon(image) {
+    const sb = requireSupabase();
+    const { pairId } = await context();
+    // パス先頭フォルダは pair_id（category-icons の書き込みポリシー準拠）。ペアで共有表示する。
+    const path = `${pairId}/icon_${Date.now()}.jpg`;
+    const { error } = await sb.storage
+      .from('category-icons')
+      .upload(path, base64ToBytes(image.base64), { contentType: image.contentType, upsert: true });
+    if (error) throw error;
+    return sb.storage.from('category-icons').getPublicUrl(path).data.publicUrl;
+  },
+
   // --- ペア ---
   async createInvite() {
     const sb = requireSupabase();
@@ -158,14 +210,15 @@ export const supabaseBackend: Backend = {
   },
 
   // --- カテゴリ ---
-  async listCategories() {
+  async listCategories(includeHidden = false) {
     const sb = requireSupabase();
-    const { data, error } = await sb
+    let query = sb
       .from('categories')
       .select('*')
       .is('deleted_at', null)
-      .eq('is_hidden', false)
       .order('sort_order', { ascending: true });
+    if (!includeHidden) query = query.eq('is_hidden', false);
+    const { data, error } = await query;
     if (error) throw error;
     return (data ?? []).map(toCategory);
   },

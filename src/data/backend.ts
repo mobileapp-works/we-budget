@@ -75,6 +75,16 @@ export interface CategoryInput {
   color: string;
 }
 
+/** 画像アップロードの入力（ImagePicker の asset 由来）。 */
+export interface ImageUpload {
+  /** ローカルURI（モック時・アップロード前プレビューに使う）。 */
+  uri: string;
+  /** 画像本体の base64（`ImagePicker` の base64:true で取得）。 */
+  base64: string;
+  /** MIMEタイプ（例: 'image/jpeg'）。 */
+  contentType: string;
+}
+
 export interface Backend {
   // --- 認証・セッション ---
   getSession(): Promise<SessionContext | null>;
@@ -91,6 +101,12 @@ export interface Backend {
   /** Expo Push Token を profiles に保存する（プッシュ配信の宛先）。 */
   registerPushToken(token: string): Promise<void>;
 
+  // --- 画像アップロード ---
+  /** アバター画像を Storage にアップロードし、公開URLを返す（モックはローカルURIをそのまま返す）。 */
+  uploadAvatar(image: ImageUpload): Promise<string>;
+  /** カテゴリアイコン画像を Storage にアップロードし、公開URLを返す（モックはローカルURIをそのまま返す）。 */
+  uploadCategoryIcon(image: ImageUpload): Promise<string>;
+
   // --- ペア ---
   createInvite(): Promise<string>; // 招待コードを返す
   joinPair(inviteCode: string): Promise<SessionContext>;
@@ -98,7 +114,8 @@ export interface Backend {
   updateSplitRatio(user1Percent: number): Promise<Pair>;
 
   // --- カテゴリ ---
-  listCategories(): Promise<Category[]>;
+  /** includeHidden=true で非表示カテゴリも含める（カテゴリ管理画面の再表示用）。 */
+  listCategories(includeHidden?: boolean): Promise<Category[]>;
   addCategory(input: CategoryInput): Promise<Category>;
   updateCategory(id: UUID, patch: Partial<CategoryInput & { isHidden: boolean; sortOrder: number }>): Promise<Category>;
 
