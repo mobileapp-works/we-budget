@@ -481,6 +481,8 @@ insert into storage.buckets (id, name, public) values ('avatars','avatars',true)
 5. **dev build を再作成**（ネイティブ設定を変えたため）。`eas build --profile development` など。
 
 > まとめ（ユーザー作業）: ①Apple capability + Supabase Apple 有効化 ②GCP で iOS/Web クライアント作成 ③app.json の iosUrlScheme 置換 ④.env に web/ios client id ⑤Supabase Google 有効化 + Authorized Client IDs ⑥dev build 再作成。
+>
+> **状態（2026-07-05）**: ①〜⑤まで設定済み。app.json の `iosUrlScheme` は実値に置換済み、`.env` に Google client id 2つ設定済み、Supabase の Apple/Google プロバイダ有効化済み。**残りは⑥ dev build 作成→実機確認のみ**。
 
 ---
 
