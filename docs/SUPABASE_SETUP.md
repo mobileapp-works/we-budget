@@ -5,7 +5,7 @@
 
 設計の正は [design.md](design.md)。本書はそれを実行可能なSQL/設定に落としたもの。
 
-> ✅ **コード側は実装済み**: SQLは `supabase/migrations/0001〜0003.sql` に、Edge Function雛形は `supabase/functions/` に、
+> ✅ **コード側は実装済み**: SQLは `supabase/migrations/0001〜0005.sql` に、Edge Function雛形は `supabase/functions/` に、
 > アプリの実データ接続は `src/data/supabaseBackend.ts` に用意済み。`src/data/index.ts` は `EXPO_PUBLIC_USE_MOCK`
 > で mock/supabase を自動切替する。**あなたの作業は下記 1〜4（＋8）だけ**。
 
@@ -469,11 +469,41 @@ insert into storage.buckets (id, name, public) values ('avatars','avatars',true)
 
 | 関数 | 役割 | 備考 |
 |------|------|------|
-| `ocr-receipt` | レシート画像を Google Cloud Vision に送り、金額/店名/日付を返す | Vision APIキーは関数の Secret に保存（クライアントに出さない） |
-| `send-push-notification` | Expo Push API を呼ぶ | `profiles.expo_push_token` 宛 |
-| `auto-generate-fixed-expenses` | 固定費の月次自動計上 | pg_cron で月初実行。部分一意制約で二重計上防止 |
-| `check-variable-reminders` | 変動固定費の未入力チェック→通知 | pg_cron 日次 |
-| `delete-account` | `auth.admin.deleteUser` で本人削除 | 共有データは ON DELETE SET NULL で匿名化保持 |
+| `send-push-notification` | Expo Push API を呼ぶ | `profiles.expo_push_token` 宛。`notifications` INSERT の Database Webhook から起動（デプロイ済） |
+| `delete-account` | `auth.admin.deleteUser` で本人削除 | 共有データは ON DELETE SET NULL で匿名化保持（デプロイ済） |
+
+> レシートOCR用 `ocr-receipt` は端末内OCR（ML Kit）採用により廃止。
+> 固定費の月次自動計上・変動固定費リマインドは Edge Function ではなく **pg_cron + DB関数**で実装した（下記 8.5）。
+
+---
+
+## 8.5 固定費 cron（`supabase/migrations/0005_fixed_cost_cron.sql`）
+
+固定費の月次自動計上・変動固定費リマインドは HTTP を挟まず **DB内の plpgsql 関数を pg_cron で日次実行**する。
+通知は `notifications` への INSERT がそのまま既存の Database Webhook（→ `send-push-notification`）に乗るため、
+アプリ内通知とプッシュ配信が自動で行われる。
+
+- `post_fixed_expenses()`: `type='fixed'` の固定費を、その月の計上日（`billing_day`、月末超過は月末に丸め）に `expenses` へ1件生成。当月既存があればスキップ（`expenses_fixed_month` 部分一意インデックスがバックストップ）。自動計上分は「パートナーが記録」通知を出さない。
+- `send_variable_reminders()`: `type='variable'` で当月未入力のものを、リマインド日（`reminder_day`、月末超過は月末丸め）にペア両者へ `reminder_variable` 通知。
+- pg_cron ジョブ `webudget_post_fixed_expenses`（UTC 15:00 = JST 00:00）/ `webudget_variable_reminders`（UTC 15:15）を登録。
+
+**やること**:
+- [x] SQL Editor で `0005_fixed_cost_cron.sql` を実行（2026-07-05 適用済み。`cron.job` に jobid 1/2 が active で登録済み）。
+
+**動作確認（cronを待たずに手動実行）**:
+```sql
+-- 登録されたジョブを確認
+select jobname, schedule, active from cron.job where jobname like 'webudget_%';
+
+-- その日の計上日/リマインド日に該当する固定費があれば処理される（冪等）
+select post_fixed_expenses();     -- 生成した expenses 件数を返す
+select send_variable_reminders(); -- 通知した変動固定費 件数を返す
+
+-- 実行履歴（cronが動いた後）
+select jobname, status, return_message, start_time
+from cron.job_run_details order by start_time desc limit 10;
+```
+※ `billing_day`/`reminder_day` を「今日（JST）」に一時変更して手動実行すると、当月分の生成/通知を即確認できる。
 
 ---
 
