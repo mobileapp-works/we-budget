@@ -65,6 +65,19 @@ export function useAuthActions() {
     mutationFn: (email: string) => backend.sendPasswordReset(email),
   });
 
+  // リカバリーメールのディープリンクからセッションを確立する（パスワード再設定用）。
+  const recoverSession = useMutation({
+    mutationFn: ({ accessToken, refreshToken }: { accessToken: string; refreshToken: string }) =>
+      backend.recoverSession(accessToken, refreshToken),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.session });
+    },
+  });
+
+  const updatePassword = useMutation({
+    mutationFn: (newPassword: string) => backend.updatePassword(newPassword),
+  });
+
   const deleteAccount = useMutation({
     mutationFn: () => backend.deleteAccount(),
     onSuccess: () => {
@@ -73,5 +86,5 @@ export function useAuthActions() {
     },
   });
 
-  return { signIn, signInWithProvider, signUp, signOut, sendPasswordReset, deleteAccount };
+  return { signIn, signInWithProvider, signUp, signOut, sendPasswordReset, recoverSession, updatePassword, deleteAccount };
 }

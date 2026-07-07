@@ -24,9 +24,12 @@ function RootNavigator() {
   useEffect(() => {
     if (isLoading) return;
     const inAuthGroup = segments[0] === '(auth)';
+    // パスワード再設定はリカバリーセッション確立後（=ログイン状態）に新パスワードを入力するため、
+    // セッションがあってもこの画面からは追い出さない。
+    const onResetPassword = inAuthGroup && segments[1] === 'reset-password';
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
+    } else if (session && inAuthGroup && !onResetPassword) {
       router.replace('/(tabs)');
     }
   }, [session, isLoading, segments, router]);

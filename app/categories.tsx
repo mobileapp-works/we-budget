@@ -71,7 +71,7 @@ export default function CategoriesScreen() {
   const handlePickPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      toast.show(t('categories.photoPermission'), 'error');
+      toast.show(t('error.photoPermission'), 'error');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

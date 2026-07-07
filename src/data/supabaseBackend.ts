@@ -123,6 +123,18 @@ export const supabaseBackend: Backend = {
     if (error) throw error;
   },
 
+  async recoverSession(accessToken, refreshToken) {
+    const sb = requireSupabase();
+    const { error } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    if (error) throw error;
+  },
+
+  async updatePassword(newPassword) {
+    const sb = requireSupabase();
+    const { error } = await sb.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  },
+
   async deleteAccount() {
     const sb = requireSupabase();
     const { error } = await sb.functions.invoke('delete-account');
@@ -173,6 +185,26 @@ export const supabaseBackend: Backend = {
       .upload(path, base64ToBytes(image.base64), { contentType: image.contentType, upsert: true });
     if (error) throw error;
     return sb.storage.from('category-icons').getPublicUrl(path).data.publicUrl;
+  },
+
+  async uploadReceipt(image) {
+    const sb = requireSupabase();
+    const { pairId } = await context();
+    // receipts は private バケット。パス先頭フォルダは pair_id（0003 のRLS準拠）。
+    // 公開URLは使えないため、DB には Storage パスを保存し表示時に署名URLへ解決する。
+    const path = `${pairId}/receipt_${Date.now()}.jpg`;
+    const { error } = await sb.storage
+      .from('receipts')
+      .upload(path, base64ToBytes(image.base64), { contentType: image.contentType, upsert: false });
+    if (error) throw error;
+    return path;
+  },
+
+  async getReceiptUrl(path) {
+    const sb = requireSupabase();
+    const { data, error } = await sb.storage.from('receipts').createSignedUrl(path, 60 * 60);
+    if (error) throw error;
+    return data.signedUrl;
   },
 
   // --- ペア ---
@@ -251,14 +283,32 @@ export const supabaseBackend: Backend = {
   // --- 支出 ---
   async listExpenses(monthKey) {
     const sb = requireSupabase();
+    // RLS は「自分のペア OR 自分が記録した支出（解除済みpair含む）」を通すため、
+    // 現在のペアの家計簿に旧pair/ソロ時代の支出が混入しないよう pair_id で明示的に絞る。
+    const { pairId } = await context();
     const start = dayjs(`${monthKey}-01`).startOf('month').format('YYYY-MM-DD');
     const end = dayjs(`${monthKey}-01`).endOf('month').format('YYYY-MM-DD');
     const { data, error } = await sb
       .from('expenses')
       .select('*')
+      .eq('pair_id', pairId)
       .is('deleted_at', null)
       .gte('expense_date', start)
       .lte('expense_date', end)
+      .order('expense_date', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toExpense);
+  },
+
+  async listSharedExpenses() {
+    const sb = requireSupabase();
+    const { pairId } = await context();
+    const { data, error } = await sb
+      .from('expenses')
+      .select('*')
+      .eq('pair_id', pairId)
+      .eq('is_shared_payment', true)
+      .is('deleted_at', null)
       .order('expense_date', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(toExpense);

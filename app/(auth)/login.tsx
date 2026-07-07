@@ -22,8 +22,9 @@ export default function LoginScreen() {
   const toast = useToast();
   const { signIn, signInWithProvider } = useAuthActions();
 
-  const [email, setEmail] = useState('demo@webudget.app');
-  const [password, setPassword] = useState('password');
+  // デモ認証情報のプリセットはモックモード限定（本番ビルドでは空欄）。
+  const [email, setEmail] = useState(IS_MOCK ? 'demo@webudget.app' : '');
+  const [password, setPassword] = useState(IS_MOCK ? 'password' : '');
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
 
@@ -47,16 +48,19 @@ export default function LoginScreen() {
         const cred = provider === 'apple' ? await signInWithApple() : await signInWithGoogle();
         token = cred.token;
       }
+      // Supabase への認証が終わるまで loading を維持する（多重押下防止）。
       signInWithProvider.mutate(
         { provider, token },
-        { onError: (e) => toast.show(t(authErrorKey(e)), 'error') }
+        {
+          onError: (e) => toast.show(t(authErrorKey(e)), 'error'),
+          onSettled: () => setOauthLoading(null),
+        }
       );
     } catch (e) {
+      setOauthLoading(null);
       if (!(e instanceof OAuthCancelledError)) {
         toast.show(t(authErrorKey(e)), 'error');
       }
-    } finally {
-      setOauthLoading(null);
     }
   };
 

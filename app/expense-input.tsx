@@ -1,7 +1,7 @@
 /**
  * 支出入力モーダル（追加 / 編集）。
  * 「レシートで入力」「手動で入力」を選び、フォームで金額・カテゴリ・支払い者・日付等を入力する。
- * レシートOCRはSupabase Edge Function（Phase4）。現状は画像添付＋手動入力に対応。
+ * レシートは端末内OCR（ML Kit）で自動入力し、画像は保存時に Storage（receipts バケット）へアップロードする。
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,13 +18,14 @@ import {
   useCategories,
   useExpense,
   useExpenseActions,
+  useReceiptImageUrl,
   useReceiptOcr,
 } from '@/hooks';
 import { usePreferencesStore } from '@/store/preferencesStore';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius, SUPPORTED_CURRENCIES, APP_CONFIG } from '@/constants';
-import { parseAmount, today } from '@/utils';
-import type { ExpenseInput } from '@/data';
+import { parseAmount } from '@/utils';
+import type { ExpenseInput, ImageUpload } from '@/data';
 import type { UUID } from '@/types/models';
 
 type PayerChoice = 'self' | 'partner' | 'shared';
@@ -42,7 +43,7 @@ export default function ExpenseInputScreen() {
   const { data: categories } = useCategories();
   const resolveName = useCategoryName();
   const existing = useExpense(editing ? id : '');
-  const { addExpense, updateExpense } = useExpenseActions();
+  const { addExpense, updateExpense, uploadReceipt } = useExpenseActions();
   const ocr = useReceiptOcr();
   const aiConsent = usePreferencesStore((s) => s.aiConsent);
 
@@ -58,8 +59,14 @@ export default function ExpenseInputScreen() {
   const [store, setStore] = useState('');
   const [memo, setMemo] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  // 撮影した未アップロードのレシート（保存時に Storage へ上げ、キャンセル時は孤児ファイルを作らない）。
+  const [pendingReceipt, setPendingReceipt] = useState<ImageUpload | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // 編集時: 保存済みレシート（Storageパス）は署名URLに解決してプレビューする。
+  const previewUri = useReceiptImageUrl(imageUri);
 
   // 編集時は既存値をフォームへ反映
   useEffect(() => {
@@ -102,7 +109,7 @@ export default function ExpenseInputScreen() {
     }
   };
 
-  /** レシート撮影 → Edge Function でOCR → 金額・店名・日付を自動入力。AI未同意なら同意画面へ誘導。 */
+  /** レシート撮影 → 端末内OCRで金額・店名・日付を自動入力。AI未同意なら同意画面へ誘導。 */
   const handleScanReceipt = async () => {
     if (!aiConsent) {
       router.push('/ai-consent');
@@ -110,14 +117,17 @@ export default function ExpenseInputScreen() {
     }
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      toast.show(t('error.generic'), 'error');
+      toast.show(t('error.cameraPermission'), 'error');
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.6 });
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.6, base64: true });
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
     setImageUri(asset.uri);
+    if (asset.base64) {
+      setPendingReceipt({ uri: asset.uri, base64: asset.base64, contentType: asset.mimeType ?? 'image/jpeg' });
+    }
     setStep('form');
 
     // 撮影画像を端末内OCR（ML Kit）にかけ、抽出結果でフォームを自動入力する。
@@ -132,7 +142,16 @@ export default function ExpenseInputScreen() {
     });
   };
 
-  const handleSave = () => {
+  /** 支払い者の選択をユーザーIDへ解決する。 */
+  const resolvePayerUserId = (): UUID | null => {
+    if (payer === 'shared') return null;
+    if (payer === 'self') return session.userId;
+    // パートナー払い: ペア解除後の編集などで partner が取れない場合は、
+    // 既存の支払い者を保持する（null で保存すると匿名化扱いに化けてしまう）。
+    return session.partner?.id ?? existing.data?.payerUserId ?? null;
+  };
+
+  const handleSave = async () => {
     const parsed = parseAmount(amount);
     if (parsed === null) {
       setError(t('error.amountPositive'));
@@ -140,39 +159,39 @@ export default function ExpenseInputScreen() {
     }
     if (!categoryId) return;
     setError(null);
+    setSaving(true);
 
-    const input: ExpenseInput = {
-      categoryId,
-      amount: parsed,
-      currency,
-      payerUserId: payer === 'shared' ? null : payer === 'self' ? session.userId : session.partner?.id ?? null,
-      isSharedPayment: payer === 'shared',
-      expenseDate: dayjs(date).format('YYYY-MM-DD'),
-      description: memo.trim() || null,
-      storeName: store.trim() || null,
-      receiptImageUrl: imageUri,
-    };
+    try {
+      // 撮影したレシートは保存時に Storage（receipts バケット）へアップロードし、パスを保存する。
+      let receiptRef = imageUri;
+      if (pendingReceipt) {
+        receiptRef = await uploadReceipt.mutateAsync(pendingReceipt);
+      }
 
-    if (editing && existing.data) {
-      updateExpense.mutate(
-        { id: existing.data.id, expectedUpdatedAt: existing.data.updatedAt, input },
-        {
-          onSuccess: () => {
-            toast.show(t('expense.saved'), 'success');
-            router.back();
-          },
-          onError: (e) =>
-            toast.show(e instanceof Error && e.message === 'conflict' ? t('error.generic') : t('error.generic'), 'error'),
-        }
-      );
-    } else {
-      addExpense.mutate(input, {
-        onSuccess: () => {
-          toast.show(t('expense.saved'), 'success');
-          router.back();
-        },
-        onError: () => toast.show(t('error.generic'), 'error'),
-      });
+      const input: ExpenseInput = {
+        categoryId,
+        amount: parsed,
+        currency,
+        payerUserId: resolvePayerUserId(),
+        isSharedPayment: payer === 'shared',
+        expenseDate: dayjs(date).format('YYYY-MM-DD'),
+        description: memo.trim() || null,
+        storeName: store.trim() || null,
+        receiptImageUrl: receiptRef,
+      };
+
+      if (editing && existing.data) {
+        await updateExpense.mutateAsync({ id: existing.data.id, expectedUpdatedAt: existing.data.updatedAt, input });
+      } else {
+        await addExpense.mutateAsync(input);
+      }
+      toast.show(t('expense.saved'), 'success');
+      router.back();
+    } catch (e) {
+      const isConflict = e instanceof Error && e.message === 'conflict';
+      toast.show(isConflict ? t('error.conflict') : t('error.generic'), 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -211,9 +230,9 @@ export default function ExpenseInputScreen() {
       />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {imageUri ? (
+          {previewUri ? (
             <View style={styles.receiptWrap}>
-              <Image source={{ uri: imageUri }} style={styles.receipt} accessibilityLabel="receipt" />
+              <Image source={{ uri: previewUri }} style={styles.receipt} accessibilityLabel={t('expense.scanReceipt')} />
               {ocr.isPending ? (
                 <View style={[styles.ocrOverlay, { backgroundColor: colors.scrim }]}>
                   <ActivityIndicator color={colors.primaryText} />
@@ -303,11 +322,7 @@ export default function ExpenseInputScreen() {
           <TextField label={t('expense.store')} value={store} onChangeText={setStore} placeholder="" />
           <TextField label={t('expense.memo')} value={memo} onChangeText={setMemo} placeholder="" />
 
-          <Button
-            title={t('expense.save')}
-            onPress={handleSave}
-            loading={addExpense.isPending || updateExpense.isPending}
-          />
+          <Button title={t('expense.save')} onPress={() => void handleSave()} loading={saving} />
           <View style={{ height: spacing.xl }} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -316,9 +331,10 @@ export default function ExpenseInputScreen() {
 }
 
 function CloseButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="閉じる" hitSlop={8}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={8}>
       <Ionicons name="close" size={26} color={colors.textPrimary} />
     </Pressable>
   );

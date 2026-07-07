@@ -5,16 +5,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, StateView, CategoryIcon, useCategoryName } from '@/components';
-import { useExpense, useExpenseActions, useExpenseHelpers, useLocale } from '@/hooks';
+import { useExpense, useExpenseActions, useExpenseHelpers, useLocale, useReceiptImageUrl, useRequireSession } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
 import { formatCurrency, formatDate } from '@/utils';
+import type { UUID } from '@/types/models';
 
 export default function ExpenseDetailScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
   const locale = useLocale();
+  const toast = useToast();
+  const session = useRequireSession();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const expenseQuery = useExpense(id);
@@ -23,25 +27,42 @@ export default function ExpenseDetailScreen() {
   const resolveName = useCategoryName();
 
   const expense = expenseQuery.data;
+  // レシートは private バケットの Storage パスで保存されるため、表示用に署名URLへ解決する。
+  const receiptUrl = useReceiptImageUrl(expense?.receiptImageUrl ?? null);
 
   const isSettled = expense?.settlementId !== null && expense?.settlementId !== undefined;
+
+  /** 記録者の表示名（自分 / パートナー名 / 退会したユーザー）。 */
+  const recorderName = (userId: UUID | null): string => {
+    if (userId === null) return t('expense.retiredUser');
+    if (userId === session.userId) return t('expense.payerSelf');
+    if (session.partner && userId === session.partner.id) return session.partner.displayName;
+    return t('expense.payerPartner');
+  };
 
   const confirmDelete = () => {
     if (!expense) return;
     // 精算済みの支出は削除しても過去の精算額に反映されないことを明示する
-    Alert.alert(t('expense.editTitle'), isSettled ? t('expense.deleteConfirmSettled') : t('expense.deleteConfirm'), [
+    Alert.alert(t('common.delete'), isSettled ? t('expense.deleteConfirmSettled') : t('expense.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
         style: 'destructive',
-        onPress: () => deleteExpense.mutate(expense.id, { onSuccess: () => router.back() }),
+        onPress: () =>
+          deleteExpense.mutate(expense.id, {
+            onSuccess: () => {
+              toast.show(t('expense.deleted'), 'success');
+              router.back();
+            },
+            onError: () => toast.show(t('error.generic'), 'error'),
+          }),
       },
     ]);
   };
 
   return (
     <Screen padded={false}>
-      <ScreenHeader title={t('expense.editTitle')} />
+      <ScreenHeader title={t('expense.detailTitle')} />
       <StateView
         isLoading={expenseQuery.isLoading}
         isError={expenseQuery.isError || !expense}
@@ -75,15 +96,11 @@ export default function ExpenseDetailScreen() {
               <DetailRow label={t('expense.date')} value={formatDate(expense.expenseDate, i18n.language)} />
               {expense.storeName ? <DetailRow label={t('expense.store')} value={expense.storeName} /> : null}
               {expense.description ? <DetailRow label={t('expense.memo')} value={expense.description} /> : null}
-              <DetailRow
-                label={t('expense.recordedBy')}
-                value={expense.recordedBy ? '' : t('expense.retiredUser')}
-                last
-              />
+              <DetailRow label={t('expense.recordedBy')} value={recorderName(expense.recordedBy)} last />
             </Card>
 
-            {expense.receiptImageUrl ? (
-              <Image source={{ uri: expense.receiptImageUrl }} style={styles.receipt} accessibilityLabel="receipt" />
+            {receiptUrl ? (
+              <Image source={{ uri: receiptUrl }} style={styles.receipt} accessibilityLabel={t('expense.scanReceipt')} />
             ) : null}
 
             <View style={styles.actions}>

@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import i18n from '@/lib/i18n';
 import { lightColors, spacing, radius, typography } from '@/constants';
 
 interface Props {
@@ -31,20 +32,18 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   override render() {
     if (this.state.hasError) {
-      // ErrorBoundary はフック不可のため固定でライトカラーを使う
+      // ErrorBoundary はフック不可のため、固定ライトカラー + i18n インスタンス直参照で描画する
       return (
         <View style={styles.container}>
-          <Text style={[typography.title2, styles.title]}>問題が発生しました</Text>
-          <Text style={[typography.body, styles.body]}>
-            アプリでエラーが発生しました。もう一度お試しください。
-          </Text>
+          <Text style={[typography.title2, styles.title]}>{i18n.t('error.crashTitle')}</Text>
+          <Text style={[typography.body, styles.body]}>{i18n.t('error.crashBody')}</Text>
           <Pressable
             onPress={this.handleReset}
             accessibilityRole="button"
-            accessibilityLabel="再試行"
+            accessibilityLabel={i18n.t('common.retry')}
             style={styles.button}
           >
-            <Text style={[typography.callout, styles.buttonText]}>再試行</Text>
+            <Text style={[typography.callout, styles.buttonText]}>{i18n.t('common.retry')}</Text>
           </Pressable>
         </View>
       );

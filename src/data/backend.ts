@@ -94,6 +94,10 @@ export interface Backend {
   signUp(email: string, password: string, displayName: string): Promise<void>;
   signOut(): Promise<void>;
   sendPasswordReset(email: string): Promise<void>;
+  /** リカバリーメールのディープリンクで受け取ったトークンからセッションを確立する。 */
+  recoverSession(accessToken: string, refreshToken: string): Promise<void>;
+  /** ログイン中ユーザーのパスワードを変更する（リカバリーセッション含む）。 */
+  updatePassword(newPassword: string): Promise<void>;
   deleteAccount(): Promise<void>;
 
   // --- プロフィール ---
@@ -106,6 +110,13 @@ export interface Backend {
   uploadAvatar(image: ImageUpload): Promise<string>;
   /** カテゴリアイコン画像を Storage にアップロードし、公開URLを返す（モックはローカルURIをそのまま返す）。 */
   uploadCategoryIcon(image: ImageUpload): Promise<string>;
+  /**
+   * レシート画像を private バケットにアップロードし、Storage パスを返す
+   * （receipts はペア外非公開のため、表示時は getReceiptUrl で署名URLに解決する）。
+   */
+  uploadReceipt(image: ImageUpload): Promise<string>;
+  /** レシートの Storage パスから表示用の署名URLを取得する（モックはそのまま返す）。 */
+  getReceiptUrl(path: string): Promise<string>;
 
   // --- ペア ---
   createInvite(): Promise<string>; // 招待コードを返す
@@ -121,6 +132,8 @@ export interface Backend {
 
   // --- 支出 ---
   listExpenses(monthKey: string): Promise<Expense[]>;
+  /** 共同口座払いの支出（全期間）。共同口座残高の計算に使う。 */
+  listSharedExpenses(): Promise<Expense[]>;
   getExpense(id: UUID): Promise<Expense | null>;
   addExpense(input: ExpenseInput): Promise<Expense>;
   updateExpense(id: UUID, expectedUpdatedAt: string, input: ExpenseInput): Promise<Expense>;

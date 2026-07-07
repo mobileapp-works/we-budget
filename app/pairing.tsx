@@ -24,13 +24,16 @@ export default function PairingScreen() {
   // 招待コードを取得（無ければ生成）
   useEffect(() => {
     if (!inviteCode) {
-      createInvite.mutate(undefined, { onSuccess: setInviteCode });
+      createInvite.mutate(undefined, {
+        onSuccess: setInviteCode,
+        onError: () => toast.show(t('error.generic'), 'error'),
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleShare = () => {
-    void Share.share({ message: `WeBudget の招待コード: ${inviteCode}` });
+    void Share.share({ message: t('pairing.shareMessage', { code: inviteCode }) });
   };
 
   const handleJoin = () => {
@@ -40,7 +43,11 @@ export default function PairingScreen() {
         toast.show(t('pairing.joined'), 'success');
         router.back();
       },
-      onError: () => toast.show(t('pairing.invalidCode'), 'error'),
+      onError: (e) => {
+        // サーバー側ガード（join_pair）のエラーを文言に振り分ける
+        const msg = e instanceof Error ? e.message : '';
+        toast.show(msg.includes('already paired') ? t('pairing.alreadyPaired') : t('pairing.invalidCode'), 'error');
+      },
     });
   };
 
@@ -81,9 +88,10 @@ export default function PairingScreen() {
 }
 
 function CloseButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="閉じる" hitSlop={8}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={8}>
       <Ionicons name="close" size={26} color={colors.textPrimary} />
     </Pressable>
   );

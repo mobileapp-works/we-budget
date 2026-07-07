@@ -93,14 +93,16 @@ export default function HomeScreen() {
             </Text>
           </Card>
 
-          {/* 立替残高 / ソロなら招待CTA */}
+          {/* 立替残高 / ソロなら招待CTA（取得前に「精算済み」と誤表示しないよう data がある時のみ描画） */}
           {isPaired ? (
-            <BalanceCard
-              onPress={() => router.push('/settlement')}
-              amount={balanceQuery.data?.settlementAmount ?? 0}
-              meReceives={balanceQuery.data?.toUserId === session.userId}
-              partnerName={session.partner?.displayName ?? t('expense.payerPartner')}
-            />
+            balanceQuery.data ? (
+              <BalanceCard
+                onPress={() => router.push('/settlement')}
+                amount={balanceQuery.data.settlementAmount}
+                meReceives={balanceQuery.data.toUserId === session.userId}
+                partnerName={session.partner?.displayName ?? t('expense.payerPartner')}
+              />
+            ) : null
           ) : (
             <Card onPress={() => router.push('/pairing')} accessibilityLabel={t('pairing.invitePartner')}>
               <View style={styles.row}>

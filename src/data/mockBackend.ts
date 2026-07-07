@@ -290,6 +290,16 @@ export const mockBackend: Backend = {
     await delay();
   },
 
+  async recoverSession() {
+    await delay();
+    // モックはリカバリーリンクを受けられないため、デモユーザーとしてログイン扱いにする。
+    state.currentUserId = ME;
+  },
+
+  async updatePassword() {
+    await delay();
+  },
+
   async deleteAccount() {
     await delay();
     state.currentUserId = null;
@@ -318,6 +328,17 @@ export const mockBackend: Backend = {
   async uploadCategoryIcon(image) {
     await delay();
     return image.uri;
+  },
+
+  async uploadReceipt(image) {
+    await delay();
+    // モックは Storage が無いのでローカルURIをそのまま保存する。
+    return image.uri;
+  },
+
+  async getReceiptUrl(path) {
+    await delay(40);
+    return path;
   },
 
   async createInvite() {
@@ -386,6 +407,14 @@ export const mockBackend: Backend = {
     await delay(80);
     return activeExpenses()
       .filter((e) => dayjs(e.expenseDate).format('YYYY-MM') === monthKey)
+      .sort((a, b) => (a.expenseDate < b.expenseDate ? 1 : -1))
+      .map((e) => ({ ...e }));
+  },
+
+  async listSharedExpenses() {
+    await delay(80);
+    return activeExpenses()
+      .filter((e) => e.isSharedPayment)
       .sort((a, b) => (a.expenseDate < b.expenseDate ? 1 : -1))
       .map((e) => ({ ...e }));
   },

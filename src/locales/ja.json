@@ -42,6 +42,11 @@
     "resetPasswordBody": "登録メールアドレスにリセット用リンクを送ります。",
     "sendResetEmail": "リセットメールを送信",
     "resetEmailSent": "リセットメールを送信しました",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "新しいパスワード（確認）",
+    "updatePassword": "パスワードを変更する",
+    "passwordUpdated": "パスワードを変更しました",
+    "resetLinkInvalid": "リンクが無効か期限切れです。もう一度リセットメールを送信してください。",
     "logout": "ログアウト",
     "logoutConfirm": "ログアウトしますか？",
     "deleteAccount": "アカウントを削除",
@@ -68,7 +73,9 @@
     "soloStart": "ひとりで始める",
     "invitePartner": "パートナーを招待",
     "joined": "ペアになりました",
-    "invalidCode": "招待コードが正しくありません"
+    "invalidCode": "招待コードが正しくありません",
+    "alreadyPaired": "すでにペアが成立しています。別のペアに参加するには、先に現在のペアを解除してください。",
+    "shareMessage": "WeBudget の招待コード: {{code}}"
   },
   "home": {
     "title": "ホーム",
@@ -89,6 +96,7 @@
   "expense": {
     "addTitle": "支出を追加",
     "editTitle": "支出を編集",
+    "detailTitle": "支出の詳細",
     "chooseMethod": "入力方法を選んでください",
     "byReceipt": "レシートで入力",
     "byManual": "手動で入力",
@@ -167,6 +175,7 @@
     "active": "有効",
     "dayUnit": "日",
     "needsInput": "今月分が未入力です",
+    "deleteConfirm": "この固定費を削除しますか？記録済みの支出はそのまま残ります。",
     "emptyTitle": "固定費を登録しましょう",
     "emptyBody": "家賃や光熱費を登録すると、毎月の入力や計上が楽になります。"
   },
@@ -208,7 +217,6 @@
     "name": "カテゴリ名",
     "icon": "アイコン",
     "choosePhoto": "写真を選ぶ",
-    "photoPermission": "写真へのアクセスを許可してください",
     "color": "色",
     "hide": "非表示にする",
     "show": "表示する",
@@ -233,7 +241,8 @@
     "goSettle": "精算画面へ",
     "unpairAnyway": "解除する",
     "splitRatio": "負担割合",
-    "saved": "プロフィールを更新しました"
+    "saved": "プロフィールを更新しました",
+    "defaultName": "ユーザー"
   },
   "settings": {
     "title": "設定",
@@ -241,6 +250,7 @@
     "language": "言語",
     "languageJa": "日本語",
     "languageEn": "English",
+    "languageAuto": "端末に合わせる",
     "theme": "テーマ",
     "themeLight": "ライト",
     "themeDark": "ダーク",
@@ -278,6 +288,13 @@
     "invalidEmail": "メールアドレスの形式が正しくありません",
     "weakPassword": "パスワードは6文字以上にしてください",
     "amountPositive": "金額は0より大きい値を入力してください",
+    "invalidDay": "日付は1〜31の数字で入力してください",
+    "conflict": "この支出は他の端末で更新されています。画面を開き直して最新の内容を確認してください。",
+    "cameraPermission": "カメラへのアクセスが許可されていません。設定アプリから許可してください。",
+    "photoPermission": "写真へのアクセスが許可されていません。設定アプリから許可してください。",
+    "passwordMismatch": "パスワードが一致しません",
+    "crashTitle": "問題が発生しました",
+    "crashBody": "アプリでエラーが発生しました。もう一度お試しください。",
     "mockMode": "現在はデモモードです。Supabase設定後に実データで動作します。"
   },
   "category": {

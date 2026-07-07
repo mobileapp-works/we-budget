@@ -29,7 +29,7 @@ export default function SignupScreen() {
     if (Object.keys(nextErrors).length > 0) return;
 
     signUp.mutate(
-      { email, password, displayName: displayName.trim() || 'ユーザー' },
+      { email, password, displayName: displayName.trim() || t('profile.defaultName') },
       {
         onSuccess: () => router.replace('/(auth)/verify-email'),
         onError: (e) => toast.show(t(authErrorKey(e)), 'error'),

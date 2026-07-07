@@ -1,7 +1,7 @@
 /**
  * Supabase クライアント。
  * モックモード時は null。実データ運用時のみ生成する。
- * セッションは SecureStore に保存し、自動更新を有効化する。
+ * セッションは AsyncStorage に保存し、自動更新を有効化する。
  */
 import 'react-native-url-polyfill/auto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, StateView } from '@/components';
 import { useNotificationSettings, useNotificationSettingsActions } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
 import type { NotificationSettings } from '@/types/models';
 
@@ -23,6 +24,7 @@ const ROWS: { key: ToggleKey; labelKey: string }[] = [
 export default function NotificationSettingsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const toast = useToast();
   const settingsQuery = useNotificationSettings();
   const { updateSettings } = useNotificationSettingsActions();
 
@@ -42,7 +44,12 @@ export default function NotificationSettingsScreen() {
                 <Text style={[typography.body, { color: colors.textPrimary, flex: 1 }]}>{t(row.labelKey)}</Text>
                 <Switch
                   value={settings ? settings[row.key] : true}
-                  onValueChange={(value) => updateSettings.mutate({ [row.key]: value })}
+                  onValueChange={(value) =>
+                    updateSettings.mutate(
+                      { [row.key]: value },
+                      { onError: () => toast.show(t('error.generic'), 'error') }
+                    )
+                  }
                   trackColor={{ true: colors.primary, false: colors.border }}
                   accessibilityLabel={t(row.labelKey)}
                 />

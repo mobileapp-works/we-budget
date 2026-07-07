@@ -4,11 +4,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, TextField, EmptyState, StateView } from '@/components';
-import { useSharedEntries, useSharedAccountActions, useExpenses, useExchangeRates, useLocale } from '@/hooks';
+import { useSharedEntries, useSharedAccountActions, useSharedExpenses, useExchangeRates, useLocale } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
-import { calculateSharedBalance, formatCurrency, getMonthKey, parseAmount, today } from '@/utils';
+import { calculateSharedBalance, formatCurrency, parseAmount, today } from '@/utils';
 
 export default function SharedAccountScreen() {
   const { t } = useTranslation();
@@ -18,15 +18,15 @@ export default function SharedAccountScreen() {
 
   const entriesQuery = useSharedEntries();
   const { addEntry } = useSharedAccountActions();
-  const { data: expenses } = useExpenses(getMonthKey());
+  // 残高は全期間のΣで計算する（当月分だけだと月替わりで過去の共同支出が消えて残高が狂う）。
+  const { data: sharedExpenses } = useSharedExpenses();
   const { data: rates } = useExchangeRates();
 
   const [depositOpen, setDepositOpen] = useState(false);
   const [amountInput, setAmountInput] = useState('');
 
-  const sharedExpenses = useMemo(() => (expenses ?? []).filter((e) => e.isSharedPayment), [expenses]);
   const balance = useMemo(
-    () => calculateSharedBalance(entriesQuery.data ?? [], sharedExpenses, rates ?? []),
+    () => calculateSharedBalance(entriesQuery.data ?? [], sharedExpenses ?? [], rates ?? []),
     [entriesQuery.data, sharedExpenses, rates]
   );
 
@@ -57,7 +57,7 @@ export default function SharedAccountScreen() {
       <StateView
         isLoading={entriesQuery.isLoading}
         isError={entriesQuery.isError}
-        isEmpty={entries.length === 0 && sharedExpenses.length === 0}
+        isEmpty={entries.length === 0 && (sharedExpenses ?? []).length === 0}
         onRetry={() => entriesQuery.refetch()}
         emptyComponent={
           <EmptyState

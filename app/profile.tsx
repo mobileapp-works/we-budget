@@ -40,7 +40,7 @@ export default function ProfileScreen() {
 
   const handleSaveName = () => {
     updateProfile.mutate(
-      { displayName: displayName.trim() || 'ユーザー' },
+      { displayName: displayName.trim() || t('profile.defaultName') },
       {
         onSuccess: () => toast.show(t('profile.saved'), 'success'),
         onError: () => toast.show(t('error.generic'), 'error'),
@@ -50,7 +50,10 @@ export default function ProfileScreen() {
 
   const handleChangeAvatar = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
+    if (!perm.granted) {
+      toast.show(t('error.photoPermission'), 'error');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -88,7 +91,11 @@ export default function ProfileScreen() {
   };
 
   const handleUnpair = () => {
-    const doUnpair = () => leavePair.mutate(undefined, { onSuccess: () => router.back() });
+    const doUnpair = () =>
+      leavePair.mutate(undefined, {
+        onSuccess: () => router.back(),
+        onError: () => toast.show(t('error.generic'), 'error'),
+      });
 
     // 未精算の立替が残っている場合は先に精算を促す（要件: 解除前に精算を促す）
     const balance = balanceQuery.data;
@@ -117,8 +124,18 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const ratioValue: RatioPreset =
-    session.pair.splitRatioUser1 === 60 ? '60' : session.pair.splitRatioUser1 === 40 ? '40' : '50';
+  // 表示・保存とも「自分 : パートナー」基準に揃える。
+  // pairs の割合は user1 基準なので、自分が user2 の場合は変換して読む/書く。
+  const isUser1 = session.pair.user1Id === session.userId;
+  const myRatio = isUser1 ? session.pair.splitRatioUser1 : session.pair.splitRatioUser2;
+  const ratioValue: RatioPreset = myRatio === 60 ? '60' : myRatio === 40 ? '40' : '50';
+
+  const handleChangeRatio = (v: RatioPreset) => {
+    const mine = parseInt(v, 10);
+    updateSplitRatio.mutate(isUser1 ? mine : 100 - mine, {
+      onError: () => toast.show(t('error.generic'), 'error'),
+    });
+  };
 
   return (
     <Screen padded={false}>
@@ -168,7 +185,7 @@ export default function ProfileScreen() {
                   { value: '40', label: '40 : 60' },
                 ]}
                 value={ratioValue}
-                onChange={(v) => updateSplitRatio.mutate(parseInt(v, 10))}
+                onChange={handleChangeRatio}
               />
               <View style={{ height: spacing.md }} />
               <Button title={t('profile.unpair')} variant="destructive" onPress={handleUnpair} loading={leavePair.isPending} />

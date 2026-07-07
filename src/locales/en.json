@@ -42,6 +42,11 @@
     "resetPasswordBody": "We'll send a reset link to your email.",
     "sendResetEmail": "Send reset email",
     "resetEmailSent": "Reset email sent",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "updatePassword": "Update password",
+    "passwordUpdated": "Password updated",
+    "resetLinkInvalid": "The link is invalid or expired. Please send a new reset email.",
     "logout": "Log Out",
     "logoutConfirm": "Log out?",
     "deleteAccount": "Delete account",
@@ -68,7 +73,9 @@
     "soloStart": "Start solo",
     "invitePartner": "Invite partner",
     "joined": "Paired successfully",
-    "invalidCode": "Invalid invite code"
+    "invalidCode": "Invalid invite code",
+    "alreadyPaired": "You're already paired. Unpair first to join a different pair.",
+    "shareMessage": "WeBudget invite code: {{code}}"
   },
   "home": {
     "title": "Home",
@@ -89,6 +96,7 @@
   "expense": {
     "addTitle": "Add expense",
     "editTitle": "Edit expense",
+    "detailTitle": "Expense details",
     "chooseMethod": "Choose how to enter",
     "byReceipt": "Scan receipt",
     "byManual": "Enter manually",
@@ -167,6 +175,7 @@
     "active": "Active",
     "dayUnit": "",
     "needsInput": "This month's entry is missing",
+    "deleteConfirm": "Delete this fixed cost? Existing expense records will remain.",
     "emptyTitle": "Register fixed costs",
     "emptyBody": "Add rent or utilities to automate monthly entries."
   },
@@ -208,7 +217,6 @@
     "name": "Category name",
     "icon": "Icon",
     "choosePhoto": "Choose a photo",
-    "photoPermission": "Please allow photo access",
     "color": "Color",
     "hide": "Hide",
     "show": "Show",
@@ -233,7 +241,8 @@
     "goSettle": "Go to settlement",
     "unpairAnyway": "Unpair anyway",
     "splitRatio": "Split ratio",
-    "saved": "Profile updated"
+    "saved": "Profile updated",
+    "defaultName": "User"
   },
   "settings": {
     "title": "Settings",
@@ -241,6 +250,7 @@
     "language": "Language",
     "languageJa": "日本語",
     "languageEn": "English",
+    "languageAuto": "Match device",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
@@ -278,6 +288,13 @@
     "invalidEmail": "Invalid email format",
     "weakPassword": "Password must be at least 6 characters",
     "amountPositive": "Amount must be greater than 0",
+    "invalidDay": "Enter a day between 1 and 31",
+    "conflict": "This expense was updated on another device. Please reopen it to see the latest version.",
+    "cameraPermission": "Camera access is not allowed. Please enable it in the Settings app.",
+    "photoPermission": "Photo access is not allowed. Please enable it in the Settings app.",
+    "passwordMismatch": "Passwords do not match",
+    "crashTitle": "Something went wrong",
+    "crashBody": "The app hit an unexpected error. Please try again.",
     "mockMode": "Demo mode. Real data works after Supabase setup."
   },
   "category": {

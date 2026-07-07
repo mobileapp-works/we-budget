@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography, layout } from '@/constants';
 
@@ -15,6 +16,7 @@ interface ScreenHeaderProps {
 }
 
 export function ScreenHeader({ title, showBack = true, right }: ScreenHeaderProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
 
@@ -25,7 +27,7 @@ export function ScreenHeader({ title, showBack = true, right }: ScreenHeaderProp
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"
-            accessibilityLabel="戻る"
+            accessibilityLabel={t('common.back')}
             hitSlop={8}
             style={styles.iconButton}
           >

@@ -1,7 +1,7 @@
 /** 支出の取得・追加・更新・削除フック。 */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { backend } from '@/data';
-import type { ExpenseInput } from '@/data';
+import type { ExpenseInput, ImageUpload } from '@/data';
 import { queryKeys } from '@/lib/queryClient';
 import { getMonthKey } from '@/utils';
 import { useRequireSession } from './useSession';
@@ -22,7 +22,25 @@ export function useExpense(id: UUID) {
     queryKey: queryKeys.expense(id),
     queryFn: () => backend.getExpense(id),
     staleTime: 30 * 1000,
+    enabled: id.length > 0, // 新規追加モーダル（id なし）では発行しない
   });
+}
+
+/**
+ * レシート画像の表示用URLを解決する。
+ * - `file://` 等のスキーム付き（ローカルURI・旧データの公開URL）はそのまま返す
+ * - スキームなし（receipts バケットの Storage パス）は署名URLに解決する
+ */
+export function useReceiptImageUrl(value: string | null): string | null {
+  const isStoragePath = value !== null && value.length > 0 && !/^[a-z][a-z0-9+.-]*:/i.test(value);
+  const query = useQuery<string>({
+    queryKey: ['receipt-url', value],
+    queryFn: () => backend.getReceiptUrl(value!),
+    enabled: isStoragePath,
+    staleTime: 50 * 60 * 1000, // 署名URLの期限（60分）より短く保つ
+  });
+  if (!value) return null;
+  return isStoragePath ? (query.data ?? null) : value;
 }
 
 export function useExpenseActions() {
@@ -56,5 +74,10 @@ export function useExpenseActions() {
     onSuccess: invalidateRelated,
   });
 
-  return { addExpense, updateExpense, deleteExpense };
+  // レシート画像を private バケットにアップロードし、保存用の Storage パスを返す。
+  const uploadReceipt = useMutation({
+    mutationFn: (image: ImageUpload) => backend.uploadReceipt(image),
+  });
+
+  return { addExpense, updateExpense, deleteExpense, uploadReceipt };
 }

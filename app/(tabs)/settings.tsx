@@ -60,7 +60,7 @@ export default function SettingsScreen() {
             options={[
               { value: 'ja', label: t('settings.languageJa') },
               { value: 'en', label: t('settings.languageEn') },
-              { value: 'auto', label: t('settings.themeSystem') },
+              { value: 'auto', label: t('settings.languageAuto') },
             ]}
             value={language}
             onChange={setLanguage}

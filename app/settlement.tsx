@@ -12,6 +12,7 @@ import {
   useLocale,
 } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
+import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
 import { formatCurrency, formatDate } from '@/utils';
 import type { UUID } from '@/types/models';
@@ -20,6 +21,7 @@ export default function SettlementScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const locale = useLocale();
+  const toast = useToast();
   const session = useRequireSession();
 
   const balanceQuery = useSettlementBalance();
@@ -29,8 +31,9 @@ export default function SettlementScreen() {
   const isPaired = session.pair.user2Id !== null;
   const balance = balanceQuery.data;
 
-  /** ユーザーIDを表示名へ。 */
+  /** ユーザーIDを表示名へ（null は退会で匿名化されたユーザー）。 */
   const nameOf = (userId: UUID | null): string => {
+    if (userId === null) return t('expense.retiredUser');
     if (userId === session.userId) return t('expense.payerSelf');
     if (session.partner && userId === session.partner.id) return session.partner.displayName;
     return t('expense.payerPartner');
@@ -49,7 +52,11 @@ export default function SettlementScreen() {
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('settlement.settleButton'),
-          onPress: () => settle.mutate(),
+          onPress: () =>
+            settle.mutate(undefined, {
+              onSuccess: () => toast.show(t('settlement.settled'), 'success'),
+              onError: () => toast.show(t('error.generic'), 'error'),
+            }),
         },
       ]
     );

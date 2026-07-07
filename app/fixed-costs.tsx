@@ -51,7 +51,7 @@ export default function FixedCostsScreen() {
       return;
     }
     if (!Number.isFinite(day) || day < 1 || day > 31) {
-      toast.show(t('error.generic'), 'error');
+      toast.show(t('error.invalidDay'), 'error');
       return;
     }
     const input: FixedCostInput = {
@@ -80,9 +80,13 @@ export default function FixedCostsScreen() {
   };
 
   const confirmDelete = (id: string, label: string) => {
-    Alert.alert(label, t('expense.deleteConfirm'), [
+    Alert.alert(label, t('fixedCosts.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deleteFixedCost.mutate(id) },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => deleteFixedCost.mutate(id, { onError: () => toast.show(t('error.generic'), 'error') }),
+      },
     ]);
   };
 
@@ -128,6 +132,7 @@ export default function FixedCostsScreen() {
                     <Text style={[typography.body, { color: colors.textPrimary }]}>{fc.name}</Text>
                     <Text style={[typography.footnote, { color: colors.textSecondary }]}>
                       {category ? resolveName(category) : ''} ・ {t('fixedCosts.billingDay')} {fc.billingDay}
+                      {t('fixedCosts.dayUnit')}
                       {fc.type === 'fixed' && fc.amount ? ` ・ ${formatCurrency(fc.amount, fc.currency, locale)}` : ''}
                     </Text>
                   </View>
