@@ -18,6 +18,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
 import { formatCurrency } from '@/utils';
+import { authErrorKey } from '@/lib/authErrors';
 
 type RatioPreset = '50' | '60' | '40';
 
@@ -69,9 +70,21 @@ export default function ProfileScreen() {
   };
 
   const handleChangePassword = () => {
-    sendPasswordReset.mutate(session.email, {
-      onSuccess: () => toast.show(t('auth.resetEmailSent'), 'success'),
-    });
+    Alert.alert(
+      t('profile.changePassword'),
+      `${t('auth.resetPasswordBody')}\n${session.email}`,
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('auth.sendResetEmail'),
+          onPress: () =>
+            sendPasswordReset.mutate(session.email, {
+              onSuccess: () => toast.show(t('auth.resetEmailSent'), 'success'),
+              onError: (e) => toast.show(t(authErrorKey(e)), 'error'),
+            }),
+        },
+      ]
+    );
   };
 
   const handleUnpair = () => {
