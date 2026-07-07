@@ -14,3 +14,4 @@ export * from './useLocale';
 export * from './useExpenseHelpers';
 export * from './useReceiptOcr';
 export * from './usePushRegistration';
+export * from './useAdsInit';

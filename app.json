@@ -78,8 +78,14 @@
           "ios": {
             "deploymentTarget": "15.5",
             "extraPods": [
-              { "name": "GoogleUtilities", "modular_headers": true },
-              { "name": "RecaptchaInterop", "modular_headers": true }
+              {
+                "name": "GoogleUtilities",
+                "modular_headers": true
+              },
+              {
+                "name": "RecaptchaInterop",
+                "modular_headers": true
+              }
             ]
           }
         }
@@ -95,6 +101,16 @@
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.604611415530-kpeeq0km44le9rt1veka4g9kqp6pfdfr"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "skAdNetworkItems": [
+            "cstr6suwn9.skadnetwork"
+          ]
         }
       ]
     ],
