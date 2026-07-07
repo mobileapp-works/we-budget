@@ -11,6 +11,7 @@ import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
 import { IS_MOCK } from '@/lib/env';
 import { OAuthCancelledError, isAppleAuthAvailable, signInWithApple, signInWithGoogle } from '@/lib/oauth';
+import { authErrorKey } from '@/lib/authErrors';
 
 type OAuthProvider = 'apple' | 'google';
 
@@ -33,7 +34,7 @@ export default function LoginScreen() {
   const handleLogin = () => {
     signIn.mutate(
       { email, password },
-      { onError: (e) => toast.show(e instanceof Error ? e.message : t('error.auth'), 'error') }
+      { onError: (e) => toast.show(t(authErrorKey(e)), 'error') }
     );
   };
 
@@ -48,11 +49,11 @@ export default function LoginScreen() {
       }
       signInWithProvider.mutate(
         { provider, token },
-        { onError: (e) => toast.show(e instanceof Error ? e.message : t('error.auth'), 'error') }
+        { onError: (e) => toast.show(t(authErrorKey(e)), 'error') }
       );
     } catch (e) {
       if (!(e instanceof OAuthCancelledError)) {
-        toast.show(e instanceof Error ? e.message : t('error.auth'), 'error');
+        toast.show(t(authErrorKey(e)), 'error');
       }
     } finally {
       setOauthLoading(null);

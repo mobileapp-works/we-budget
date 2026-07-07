@@ -8,6 +8,7 @@ import { useAuthActions } from '@/hooks';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing } from '@/constants';
 import { isValidEmail, isValidPassword } from '@/utils/validation';
+import { authErrorKey } from '@/lib/authErrors';
 
 export default function SignupScreen() {
   const { t } = useTranslation();
@@ -31,7 +32,7 @@ export default function SignupScreen() {
       { email, password, displayName: displayName.trim() || 'ユーザー' },
       {
         onSuccess: () => router.replace('/(auth)/verify-email'),
-        onError: (e) => toast.show(e instanceof Error ? e.message : t('error.generic'), 'error'),
+        onError: (e) => toast.show(t(authErrorKey(e)), 'error'),
       }
     );
   };
