@@ -2,12 +2,19 @@
 
 > 最終更新: 2026-07-08。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
 
-## 2026-07-08 総合コードレビュー実施（修正なし・指摘のみ）
+## 2026-07-08 総合コードレビュー実施 → バグ修正完了
 
-- 全画面・データ層・migrations・i18n を要件/設計と突き合わせて総点検。**結果は [docs/review_2026-07-08.md](review_2026-07-08.md) に集約**（重大9件 / 高15件 / 中低20件 + 残作業リスト）。
-- 特に重大: ①パスワード再設定がディープリンク未処理で完結不能 ②共同口座残高が翌月から狂う（当月支出のみで計算） ③為替レート入力UIが存在しない ④user2側で負担割合が反転 ⑤レシート画像がStorage未アップロード（ローカルURI保存） ⑥listExpensesにpair_idフィルタなしで旧pairの支出が混入 ⑦精算実行で編集通知がN連発＋精算通知自体が未実装 ⑧予算アラート未実装 ⑨月末精算リマインド未実装。
-- 検証: typecheck / jest 75件 / expo export --platform ios すべてパス（2026-07-08 再確認）。
-- **修正は未着手**。次スレはレビューの「推奨着手順」（review_2026-07-08.md 末尾）から進めること。
+- 全画面・データ層・migrations・i18n を要件/設計と突き合わせて総点検。**結果は [docs/review_2026-07-08.md](review_2026-07-08.md) に集約**（重大9件 / 高15件 / 中低20件 + 残作業リスト。冒頭に対応状況を記載）。
+- **同日、バグ系はすべて修正済み**（機能未実装系＝為替レートUI・予算アラート・月末精算リマインド・月送りUI・固定費編集UI等は残作業として保留）:
+  - **パスワード再設定フロー完成（R-1）**: `reset-password` を request/update の2モード化。リカバリーメールのディープリンク（`webudget://reset-password#access_token=...`）を `useURL` で受け、`Backend.recoverSession`（setSession）→ 新パスワード入力 → `Backend.updatePassword`。`_layout` の認証ガードに reset-password 例外を追加（セッション確立後も追い出さない）。
+  - **共同口座残高（R-2）**: `Backend.listSharedExpenses()`（全期間・共同払いのみ）を新設し、当月分のみで計算していた残高を全期間Σに修正。
+  - **負担割合の反転（R-4）**: profile で自分が user2 の場合に表示・保存とも user1 基準へ変換。
+  - **レシートの Storage 保存（R-5）**: `Backend.uploadReceipt`（receipts バケット、パス保存）+ `getReceiptUrl`（署名URL・60分）+ `useReceiptImageUrl` フック。保存時にアップロードし、詳細/編集プレビューは署名URLで表示。旧データ（file://・http）はそのまま表示（後方互換）。
+  - **pair 混入（R-6）**: `listExpenses` に `pair_id` フィルタ追加（RLS の recorded_by 条件による旧pairデータの混入を遮断）。
+  - **migration `0009_notification_and_pair_fixes.sql`（R-7 / H-9）**: ①精算スタンプの UPDATE は expense_edited 通知を出さない ②settlements INSERT で両者に settlement 通知（要件7-6） ③join_pair はペア成立済みなら 'already paired' で拒否。**未適用（要 SQL Editor 実行）**。
+  - UX/文言: 本番ログインのデモ認証情報プリセット除去（IS_MOCK限定）/ 支出詳細の記録者名表示修正・タイトルを「支出の詳細」に / 楽観ロック競合に専用メッセージ `error.conflict` / カメラ・写真権限の専用メッセージ / 精算・支出削除・固定費削除・通知設定・ペア解除・招待生成の無言失敗解消（toast追加）/ ホーム立替カードのロード中「精算済み」誤表示防止 / OAuthボタンの多重押下防止 / `useExpense('')` の空クエリ発行防止（enabled）/ 精算画面の退会ユーザー表示統一 / 言語autoラベルのキー修正 / 固定費の「25日」表記 / 招待共有文・閉じる/戻る・デフォルト表示名・ErrorBoundary の i18n 化。
+- 検証: typecheck / jest 75件 / expo export --platform ios すべてパス。
+- **残（ユーザー作業）**: ①SQL Editor で **0009 を適用**（0007 未適用・0008 適用状態確認も忘れずに） ②パスワード再設定は実機/シミュレータでメールリンク→新パスワード設定のE2E確認を推奨。
 
 ## 環境情報
 - フレームワーク: React Native（**Expo SDK 54** / RN 0.81.5 / React 19 / **New Architecture 有効** / Expo Router）
