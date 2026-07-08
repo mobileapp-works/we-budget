@@ -1,11 +1,11 @@
 # 実装ログ（WeBudget）
 
-> 最終更新: 2026-07-08（承認制ペアリング実装・**0010 未適用**）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+> 最終更新: 2026-07-08（承認制ペアリング実装・0010 適用済み）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
 
-## 2026-07-08 承認制ペアリング + 同期強化（migration 0010・未適用）
+## 2026-07-08 承認制ペアリング + 同期強化（migration 0010・適用済み）
 
 - **ペアリングを承認制に変更**（従来はコード入力で即成立）: 申請者がコード入力 → `pair_requests` に申請作成 → 招待側に `pair_request` 通知（アプリ内+既存Webhook経由プッシュ）→ 招待側がペアリング画面で **承認/拒否** → 承認で成立・申請者に `pair_approved` 通知。
-- **migration `0010_pair_request_approval.sql`（未適用・要SQL Editor実行）**:
+- **migration `0010_pair_request_approval.sql`（適用済み・2026-07-08 SQL Editor で実行・Success確認）**:
   - テーブル `pair_requests`（status: pending/approved/declined/cancelled。pending は申請者につき1件の部分一意。RLS=当事者SELECTのみ、書き込みはRPC）
   - RPC: `request_pair`（検証+冪等化+通知）/ `list_incoming_pair_requests`（表示名込みJSON。成立済み申請者は除外）/ `respond_pair_request`（行ロックで二重承認防止・承認時は他のpending自動拒否）/ `cancel_pair_request`
   - `notifications.type` CHECK に `pair_request` / `pair_approved` / `pair_declined` を追加
@@ -14,7 +14,8 @@
 - **同期強化（`useAppStateSync` 新設・_layoutで常時起動）**: フォアグラウンド復帰時に session / notifications / pair-requests を invalidate（パートナーのペア解除・負担割合変更・ペア成立に追従）。あわせて Supabase の `auth.startAutoRefresh/stopAutoRefresh` を AppState 連動に（RN推奨。長時間バックグラウンド後のトークン失効対策）。
 - **ペア機能・同期の精査結果**: 金額系（精算残高・立替）はRPCで毎回サーバー計算のため相手の変更に常に正しく追従 ✅／データ取得層は `context()` で毎回 profiles から pair_id を引くため RLS と常に一致 ✅／表示用セッション（パートナー名・成立状態・招待コード・負担割合表示）だけが staleTime∞ で遅延していた → useAppStateSync とポーリングで解消。リアルタイム反映（Supabase Realtime）は将来課題として見送り（フォアグラウンド同期+プッシュで実用十分と判断）。
 - 検証: typecheck / jest 75件 / expo export すべてパス。
-- **残（ユーザー作業）**: ①SQL Editor で **0010 を適用**（適用までは実環境のペア申請は `request_pair` 不在で失敗する） ②2アカウント実機で 申請→通知→承認→成立 のE2E確認。
+- [x] **0010 適用済み（2026-07-08）**。適用済みマイグレーション: 0001〜0005・0009・0010（0006 任意・0007 未適用、0008 要確認）。
+- **残（ユーザー作業）**: 2アカウント実機で 申請→通知→承認→成立 のE2E確認（RLS検証を兼ねる。docs/test_plan.md 参照）。
 
 ## 2026-07-08 総合コードレビュー実施 → バグ修正完了
 
