@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Screen, ScreenHeader, Card, Button, TextField, EmptyState, StateView, SegmentedControl, useCategoryName } from '@/components';
+import { Screen, ScreenHeader, Card, Button, TextField, DayPickerField, EmptyState, StateView, SegmentedControl, useCategoryName } from '@/components';
 import { useFixedCosts, useFixedCostActions, useExpenses, useCategories, useRequireSession, useLocale } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
@@ -29,7 +29,7 @@ export default function FixedCostsScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState<FixedCostType>('fixed');
   const [amount, setAmount] = useState('');
-  const [billingDay, setBillingDay] = useState('1');
+  const [billingDay, setBillingDay] = useState(1);
 
   // 当月に計上済みの固定費ID集合（変動の未入力判定に使う）
   const enteredThisMonth = useMemo(() => {
@@ -41,17 +41,12 @@ export default function FixedCostsScreen() {
   }, [expenses]);
 
   const handleAdd = () => {
-    const day = parseInt(billingDay, 10);
     if (!name.trim()) {
       toast.show(t('error.required'), 'error');
       return;
     }
     if (type === 'fixed' && parseAmount(amount) === null) {
       toast.show(t('error.amountPositive'), 'error');
-      return;
-    }
-    if (!Number.isFinite(day) || day < 1 || day > 31) {
-      toast.show(t('error.invalidDay'), 'error');
       return;
     }
     const input: FixedCostInput = {
@@ -62,8 +57,8 @@ export default function FixedCostsScreen() {
       currency: 'JPY',
       payerUserId: session.userId,
       isSharedPayment: false,
-      billingDay: day,
-      reminderDay: type === 'variable' ? day : null,
+      billingDay,
+      reminderDay: type === 'variable' ? billingDay : null,
       isActive: true,
     };
     addFixedCost.mutate(input, {
@@ -72,7 +67,7 @@ export default function FixedCostsScreen() {
         setOpen(false);
         setName('');
         setAmount('');
-        setBillingDay('1');
+        setBillingDay(1);
         setType('fixed');
       },
       onError: () => toast.show(t('error.generic'), 'error'),
@@ -120,6 +115,8 @@ export default function FixedCostsScreen() {
             {items.map((fc, idx) => {
               const needsInput = fc.type === 'variable' && !enteredThisMonth.has(fc.id);
               const category = categories?.find((c) => c.id === fc.categoryId);
+              const dayLabel = fc.type === 'fixed' ? t('fixedCosts.billingDay') : t('fixedCosts.reminderDay');
+              const day = fc.type === 'fixed' ? fc.billingDay : fc.reminderDay ?? fc.billingDay;
               return (
                 <Pressable
                   key={fc.id}
@@ -131,8 +128,7 @@ export default function FixedCostsScreen() {
                   <View style={styles.rowMain}>
                     <Text style={[typography.body, { color: colors.textPrimary }]}>{fc.name}</Text>
                     <Text style={[typography.footnote, { color: colors.textSecondary }]}>
-                      {category ? resolveName(category) : ''} ・ {t('fixedCosts.billingDay')} {fc.billingDay}
-                      {t('fixedCosts.dayUnit')}
+                      {category ? resolveName(category) : ''} ・ {dayLabel} {t('common.dayOfMonth', { day })}
                       {fc.type === 'fixed' && fc.amount ? ` ・ ${formatCurrency(fc.amount, fc.currency, locale)}` : ''}
                     </Text>
                   </View>
@@ -175,11 +171,19 @@ export default function FixedCostsScreen() {
                   value={type}
                   onChange={setType}
                 />
+                <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: spacing.xs }]}>
+                  {type === 'fixed' ? t('fixedCosts.typeFixedDesc') : t('fixedCosts.typeVariableDesc')}
+                </Text>
               </View>
               {type === 'fixed' ? (
                 <TextField label={t('fixedCosts.amount')} value={amount} onChangeText={setAmount} keyboardType="numeric" prefix="￥" />
               ) : null}
-              <TextField label={t('fixedCosts.billingDay')} value={billingDay} onChangeText={setBillingDay} keyboardType="numeric" />
+              <DayPickerField
+                label={type === 'fixed' ? t('fixedCosts.billingDay') : t('fixedCosts.reminderDay')}
+                value={billingDay}
+                onChange={setBillingDay}
+                helperText={type === 'fixed' ? t('fixedCosts.monthEndNote') : t('fixedCosts.reminderDayNote')}
+              />
               <Button title={t('common.save')} onPress={handleAdd} loading={addFixedCost.isPending} />
               <Button title={t('common.cancel')} variant="text" onPress={() => setOpen(false)} />
             </ScrollView>

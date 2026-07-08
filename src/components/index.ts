@@ -1,6 +1,7 @@
 export * from './Button';
 export * from './Card';
 export * from './TextField';
+export * from './DayPickerField';
 export * from './Screen';
 export * from './BannerAdSlot';
 export * from './EmptyState';
