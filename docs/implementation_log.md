@@ -1,6 +1,6 @@
 # 実装ログ（WeBudget）
 
-> 最終更新: 2026-07-08。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+> 最終更新: 2026-07-08（0009 適用済み）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
 
 ## 2026-07-08 総合コードレビュー実施 → バグ修正完了
 
@@ -11,10 +11,11 @@
   - **負担割合の反転（R-4）**: profile で自分が user2 の場合に表示・保存とも user1 基準へ変換。
   - **レシートの Storage 保存（R-5）**: `Backend.uploadReceipt`（receipts バケット、パス保存）+ `getReceiptUrl`（署名URL・60分）+ `useReceiptImageUrl` フック。保存時にアップロードし、詳細/編集プレビューは署名URLで表示。旧データ（file://・http）はそのまま表示（後方互換）。
   - **pair 混入（R-6）**: `listExpenses` に `pair_id` フィルタ追加（RLS の recorded_by 条件による旧pairデータの混入を遮断）。
-  - **migration `0009_notification_and_pair_fixes.sql`（R-7 / H-9）**: ①精算スタンプの UPDATE は expense_edited 通知を出さない ②settlements INSERT で両者に settlement 通知（要件7-6） ③join_pair はペア成立済みなら 'already paired' で拒否。**未適用（要 SQL Editor 実行）**。
+  - **migration `0009_notification_and_pair_fixes.sql`（R-7 / H-9）**: ①精算スタンプの UPDATE は expense_edited 通知を出さない ②settlements INSERT で両者に settlement 通知（要件7-6） ③join_pair はペア成立済みなら 'already paired' で拒否。**適用済み（2026-07-08、SQL Editor で実行・Success確認）**。
   - UX/文言: 本番ログインのデモ認証情報プリセット除去（IS_MOCK限定）/ 支出詳細の記録者名表示修正・タイトルを「支出の詳細」に / 楽観ロック競合に専用メッセージ `error.conflict` / カメラ・写真権限の専用メッセージ / 精算・支出削除・固定費削除・通知設定・ペア解除・招待生成の無言失敗解消（toast追加）/ ホーム立替カードのロード中「精算済み」誤表示防止 / OAuthボタンの多重押下防止 / `useExpense('')` の空クエリ発行防止（enabled）/ 精算画面の退会ユーザー表示統一 / 言語autoラベルのキー修正 / 固定費の「25日」表記 / 招待共有文・閉じる/戻る・デフォルト表示名・ErrorBoundary の i18n 化。
 - 検証: typecheck / jest 75件 / expo export --platform ios すべてパス。
-- **残（ユーザー作業）**: ①SQL Editor で **0009 を適用**（0007 未適用・0008 適用状態確認も忘れずに） ②パスワード再設定は実機/シミュレータでメールリンク→新パスワード設定のE2E確認を推奨。
+- [x] **0009 適用済み（2026-07-08）**。
+- **残（ユーザー作業）**: ①**0007 の適用**（カテゴリ写真の Storage バケット。未適用だと本番でカテゴリ写真アップロードが失敗）と **0008 の適用状態確認** ②パスワード再設定は実機/シミュレータでメールリンク→新パスワード設定のE2E確認を推奨 ③精算を1回実行して「精算が完了しました」通知が両者に届くこと（編集通知が連発しないこと）のスモーク。
 
 ## 環境情報
 - フレームワーク: React Native（**Expo SDK 54** / RN 0.81.5 / React 19 / **New Architecture 有効** / Expo Router）
@@ -22,7 +23,7 @@
 - 言語: TypeScript（strict, noUncheckedIndexedAccess 等を有効化）
 - バックエンド: Supabase（**構築済み・実接続で動作中**。`EXPO_PUBLIC_USE_MOCK=false`）
   - プロジェクト: `oarbchcwtfxjxvjnuoaw.supabase.co`（URL/anon key は `.env` と `eas.json` に設定済み）
-  - マイグレーション 0001〜0005 適用済み（テーブル/RLS/RPC/Storage/精算・ペア解除バグ修正/固定費cron）。0005 は pg_cron ジョブ2本が active で登録済（2026-07-05 確認）
+  - マイグレーション 0001〜0005・0009 適用済み（テーブル/RLS/RPC/Storage/精算・ペア解除バグ修正/固定費cron/通知・join_pair修正）。0005 は pg_cron ジョブ2本が active で登録済（2026-07-05 確認）。**0006（任意）・0007 は未適用**、0008 は適用状態要確認
   - Edge Functions: `send-push-notification`・`delete-account` は**デプロイ済**。固定費の自動計上/リマインドは Edge ではなく **pg_cron + DB関数（0005）** で実装
 - 状態管理: Zustand（設定の永続化）+ TanStack Query（サーバー状態）
 - ビルド: EAS（`eas.json` 設定済み。development / preview / production）
