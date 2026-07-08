@@ -25,6 +25,7 @@ import { usePreferencesStore } from '@/store/preferencesStore';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius, SUPPORTED_CURRENCIES, APP_CONFIG } from '@/constants';
 import { parseAmount } from '@/utils';
+import { recordSaveAndMaybeShowInterstitial } from '@/lib/interstitial';
 import type { ExpenseInput, ImageUpload } from '@/data';
 import type { UUID } from '@/types/models';
 
@@ -187,6 +188,8 @@ export default function ExpenseInputScreen() {
       }
       toast.show(t('expense.saved'), 'success');
       router.back();
+      // 新規の支出保存を「区切り」として、頻度条件を満たせば全画面広告を表示する（編集時は出さない）。
+      if (!editing) recordSaveAndMaybeShowInterstitial(session.email);
     } catch (e) {
       const isConflict = e instanceof Error && e.message === 'conflict';
       toast.show(isConflict ? t('error.conflict') : t('error.generic'), 'error');

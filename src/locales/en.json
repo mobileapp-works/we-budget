@@ -75,7 +75,20 @@
     "joined": "Paired successfully",
     "invalidCode": "Invalid invite code",
     "alreadyPaired": "You're already paired. Unpair first to join a different pair.",
-    "shareMessage": "WeBudget invite code: {{code}}"
+    "shareMessage": "WeBudget invite code: {{code}}",
+    "sendRequest": "Send pair request",
+    "confirmSend": "Once approved, you'll join your partner's budget book (your past records won't move over). Send the request?",
+    "requestSent": "Request sent. Waiting for your partner's approval.",
+    "waitingApproval": "Waiting for approval…",
+    "cancelRequest": "Cancel request",
+    "requestCancelled": "Request cancelled",
+    "requestDeclined": "Your pair request was not approved",
+    "incomingTitle": "Pair requests",
+    "incomingBody": "{{name}} wants to pair with you",
+    "approve": "Approve",
+    "decline": "Decline",
+    "declined": "Request declined",
+    "approveConfirm": "Pair with {{name}}? They'll join your budget book."
   },
   "home": {
     "title": "Home",

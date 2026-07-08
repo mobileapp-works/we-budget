@@ -12,6 +12,8 @@ declare global {
       EXPO_PUBLIC_SENTRY_DSN?: string;
       EXPO_PUBLIC_ADMOB_BANNER_IOS?: string;
       EXPO_PUBLIC_ADMOB_BANNER_ANDROID?: string;
+      EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS?: string;
+      EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID?: string;
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?: string;
       EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?: string;
       [key: string]: string | undefined;

@@ -31,4 +31,6 @@ export const queryKeys = {
   rates: (pairId: string) => ['exchange-rates', pairId] as const,
   notifications: (userId: string) => ['notifications', userId] as const,
   notificationSettings: (userId: string) => ['notification-settings', userId] as const,
+  incomingPairRequests: (pairId: string) => ['pair-requests', 'incoming', pairId] as const,
+  outgoingPairRequest: (userId: string) => ['pair-requests', 'outgoing', userId] as const,
 };

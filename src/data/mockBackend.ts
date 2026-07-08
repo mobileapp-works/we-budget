@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import type {
   Profile,
   Pair,
+  PairRequest,
   Category,
   Expense,
   FixedCost,
@@ -48,6 +49,7 @@ interface MockState {
   email: string;
   profiles: Profile[];
   pair: Pair;
+  pairRequests: PairRequest[];
   categories: Category[];
   expenses: Expense[];
   fixedCosts: FixedCost[];
@@ -214,6 +216,7 @@ function seed(): MockState {
     email: 'demo@webudget.app',
     profiles,
     pair,
+    pairRequests: [],
     categories,
     expenses,
     fixedCosts,
@@ -346,10 +349,63 @@ export const mockBackend: Backend = {
     return state.pair.inviteCode;
   },
 
-  async joinPair() {
+  async requestPair() {
     await delay();
-    // デモでは既にペア済み
+    if (state.pair.user2Id) throw new Error('already paired');
+    const request: PairRequest = {
+      id: uid('preq'),
+      pairId: 'pair-other',
+      requesterId: state.currentUserId ?? ME,
+      requesterName: null,
+      status: 'pending',
+      createdAt: nowIso(),
+    };
+    state.pairRequests.unshift(request);
+    // デモ: 数秒後に相手が承認した体でペアを復元し、承認通知を積む。
+    setTimeout(() => {
+      if (request.status !== 'pending') return;
+      request.status = 'approved';
+      state.pair = { ...state.pair, user2Id: PARTNER, updatedAt: nowIso() };
+      state.notifications.unshift({
+        id: uid('ntf'),
+        userId: ME,
+        pairId: state.pair.id,
+        type: 'pair_approved',
+        title: 'ペアになりました',
+        body: 'ペア申請が承認されました。',
+        data: null,
+        isRead: false,
+        createdAt: nowIso(),
+      });
+    }, 4000);
+  },
+
+  async getOutgoingPairRequest() {
+    await delay(40);
+    const mine = state.pairRequests.filter((r) => r.requesterId === state.currentUserId);
+    return mine.length > 0 ? { ...mine[0]! } : null;
+  },
+
+  async listIncomingPairRequests() {
+    await delay(40);
+    // デモでは受信側の申請は発生しない
+    return [];
+  },
+
+  async respondPairRequest(requestId, approve) {
+    await delay();
+    const request = state.pairRequests.find((r) => r.id === requestId);
+    if (request && request.status === 'pending') {
+      request.status = approve ? 'approved' : 'declined';
+      if (approve) state.pair = { ...state.pair, user2Id: request.requesterId, updatedAt: nowIso() };
+    }
     return buildSession();
+  },
+
+  async cancelPairRequest(requestId) {
+    await delay();
+    const request = state.pairRequests.find((r) => r.id === requestId);
+    if (request && request.status === 'pending') request.status = 'cancelled';
   },
 
   async leavePair() {

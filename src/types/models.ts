@@ -144,7 +144,27 @@ export type NotificationType =
   | 'reminder_variable'
   | 'budget_warning'
   | 'budget_exceeded'
-  | 'settlement_reminder';
+  | 'settlement_reminder'
+  | 'pair_request'
+  | 'pair_approved'
+  | 'pair_declined';
+
+export type PairRequestStatus = 'pending' | 'approved' | 'declined' | 'cancelled';
+
+/**
+ * ペア申請（pair_requests）。
+ * 招待コードの持ち主（pair_id のペア）に対する参加申請。承認されると成立する。
+ */
+export interface PairRequest {
+  id: UUID;
+  /** 申請先（招待コードの持ち主）のペアID */
+  pairId: UUID;
+  requesterId: UUID;
+  /** 申請者の表示名（受信側リスト表示用。RPCで解決） */
+  requesterName: string | null;
+  status: PairRequestStatus;
+  createdAt: ISODateTime;
+}
 
 /** アプリ内通知（notifications） */
 export interface AppNotification {

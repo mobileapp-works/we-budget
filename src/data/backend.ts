@@ -6,6 +6,7 @@
 import type {
   Profile,
   Pair,
+  PairRequest,
   Category,
   Expense,
   FixedCost,
@@ -118,9 +119,18 @@ export interface Backend {
   /** レシートの Storage パスから表示用の署名URLを取得する（モックはそのまま返す）。 */
   getReceiptUrl(path: string): Promise<string>;
 
-  // --- ペア ---
+  // --- ペア（承認制: 申請 → 相手が承認 → 成立） ---
   createInvite(): Promise<string>; // 招待コードを返す
-  joinPair(inviteCode: string): Promise<SessionContext>;
+  /** 招待コードの持ち主へペア申請を送る（相手に通知が届く。即時成立はしない）。 */
+  requestPair(inviteCode: string): Promise<void>;
+  /** 自分が送った最新のペア申請（未送信なら null）。pending 中はポーリングで状態遷移を検知する。 */
+  getOutgoingPairRequest(): Promise<PairRequest | null>;
+  /** 自分のペア宛てに届いている pending のペア申請一覧（承認/拒否用）。 */
+  listIncomingPairRequests(): Promise<PairRequest[]>;
+  /** ペア申請を承認/拒否する。承認すると申請者が自分のペアに合流する。 */
+  respondPairRequest(requestId: UUID, approve: boolean): Promise<SessionContext>;
+  /** 自分が送った pending のペア申請を取り消す。 */
+  cancelPairRequest(requestId: UUID): Promise<void>;
   leavePair(): Promise<SessionContext>;
   updateSplitRatio(user1Percent: number): Promise<Pair>;
 

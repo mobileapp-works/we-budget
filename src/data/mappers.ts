@@ -5,6 +5,7 @@
 import type {
   Profile,
   Pair,
+  PairRequest,
   Category,
   Expense,
   FixedCost,
@@ -45,6 +46,18 @@ export function toPair(r: Row): Pair {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     deletedAt: r.deleted_at ?? null,
+  };
+}
+
+export function toPairRequest(r: Row): PairRequest {
+  return {
+    id: r.id,
+    pairId: r.pair_id,
+    requesterId: r.requester_id,
+    // requester_name は list_incoming_pair_requests RPC のみが返す（行SELECTでは undefined）
+    requesterName: r.requester_name ?? null,
+    status: r.status,
+    createdAt: r.created_at,
   };
 }
 

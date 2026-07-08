@@ -75,7 +75,20 @@
     "joined": "ペアになりました",
     "invalidCode": "招待コードが正しくありません",
     "alreadyPaired": "すでにペアが成立しています。別のペアに参加するには、先に現在のペアを解除してください。",
-    "shareMessage": "WeBudget の招待コード: {{code}}"
+    "shareMessage": "WeBudget の招待コード: {{code}}",
+    "sendRequest": "ペアを申請する",
+    "confirmSend": "承認されると、あなたが相手の家計簿に合流します（あなたのこれまでの記録は持ち込まれません）。申請を送りますか？",
+    "requestSent": "ペア申請を送りました。相手の承認をお待ちください。",
+    "waitingApproval": "相手の承認を待っています…",
+    "cancelRequest": "申請を取り消す",
+    "requestCancelled": "申請を取り消しました",
+    "requestDeclined": "ペア申請は承認されませんでした",
+    "incomingTitle": "ペア申請",
+    "incomingBody": "{{name}} さんがペアを申請しています",
+    "approve": "承認する",
+    "decline": "拒否する",
+    "declined": "申請を拒否しました",
+    "approveConfirm": "{{name}} さんとペアになりますか？相手があなたの家計簿に合流します。"
   },
   "home": {
     "title": "ホーム",

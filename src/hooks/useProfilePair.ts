@@ -1,10 +1,10 @@
-/** プロフィール更新・ペア操作のフック（セッションを更新する）。 */
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+/** プロフィール更新・ペア操作（承認制ペアリング含む）のフック。 */
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { backend } from '@/data';
 import type { ImageUpload } from '@/data';
 import { queryKeys } from '@/lib/queryClient';
 import { useRequireSession } from './useSession';
-import type { Profile } from '@/types/models';
+import type { PairRequest, Profile, UUID } from '@/types/models';
 
 export function useProfileActions() {
   const qc = useQueryClient();
@@ -34,14 +34,31 @@ export function useProfileActions() {
 
 export function usePairActions() {
   const qc = useQueryClient();
+  const invalidateRequests = () => qc.invalidateQueries({ queryKey: ['pair-requests'] });
 
   const createInvite = useMutation({
     mutationFn: () => backend.createInvite(),
   });
 
-  const joinPair = useMutation({
-    mutationFn: (inviteCode: string) => backend.joinPair(inviteCode),
-    onSuccess: (session) => qc.setQueryData(queryKeys.session, session),
+  // 招待コードの持ち主へペア申請を送る（成立は相手の承認後）。
+  const requestPair = useMutation({
+    mutationFn: (inviteCode: string) => backend.requestPair(inviteCode),
+    onSuccess: invalidateRequests,
+  });
+
+  // 届いた申請を承認/拒否する。承認すると自分のペアに相手が合流する。
+  const respondRequest = useMutation({
+    mutationFn: ({ requestId, approve }: { requestId: UUID; approve: boolean }) =>
+      backend.respondPairRequest(requestId, approve),
+    onSuccess: (session) => {
+      qc.setQueryData(queryKeys.session, session);
+      invalidateRequests();
+    },
+  });
+
+  const cancelRequest = useMutation({
+    mutationFn: (requestId: UUID) => backend.cancelPairRequest(requestId),
+    onSuccess: invalidateRequests,
   });
 
   const leavePair = useMutation({
@@ -54,5 +71,35 @@ export function usePairActions() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.session }),
   });
 
-  return { createInvite, joinPair, leavePair, updateSplitRatio };
+  return { createInvite, requestPair, respondRequest, cancelRequest, leavePair, updateSplitRatio };
+}
+
+/**
+ * 自分のペア宛てに届いている pending のペア申請（承認/拒否用）。
+ * ペアリング画面でのみマウントされる前提で、画面表示中は軽くポーリングして
+ * 「申請が来たのに気づかない」を防ぐ。成立済み（user2 あり）なら発行しない。
+ */
+export function useIncomingPairRequests() {
+  const session = useRequireSession();
+  return useQuery<PairRequest[]>({
+    queryKey: queryKeys.incomingPairRequests(session.pair.id),
+    queryFn: () => backend.listIncomingPairRequests(),
+    enabled: session.pair.user2Id === null,
+    staleTime: 5 * 1000,
+    refetchInterval: 5000,
+  });
+}
+
+/**
+ * 自分が送った最新のペア申請。pending の間だけポーリングし、
+ * approved / declined への遷移を検知して画面側で後続処理を行う。
+ */
+export function useOutgoingPairRequest() {
+  const session = useRequireSession();
+  return useQuery<PairRequest | null>({
+    queryKey: queryKeys.outgoingPairRequest(session.userId),
+    queryFn: () => backend.getOutgoingPairRequest(),
+    staleTime: 3 * 1000,
+    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 4000 : false),
+  });
 }

@@ -1,11 +1,14 @@
-/** 通知一覧。タップで既読、ヘッダー右で全既読。 */
+/** 通知一覧。タップで既読（ペア申請系はペア画面へ遷移）、ヘッダー右で全既読。 */
 import React from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, EmptyState, StateView } from '@/components';
 import { useNotifications, useNotificationActions, useLocale } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
+import { queryKeys } from '@/lib/queryClient';
 import { spacing, typography } from '@/constants';
 import { formatDate } from '@/utils';
 import type { AppNotification } from '@/types/models';
@@ -13,15 +16,27 @@ import type { AppNotification } from '@/types/models';
 export default function NotificationsScreen() {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
+  const router = useRouter();
+  const qc = useQueryClient();
 
   const notificationsQuery = useNotifications();
   const { markRead, markAllRead } = useNotificationActions();
 
   const data = notificationsQuery.data ?? [];
 
+  const handlePress = (item: AppNotification) => {
+    if (!item.isRead) markRead.mutate(item.id);
+    // ペア申請系は状態が変わっている可能性が高いので、セッションを取り直しつつペア画面へ。
+    if (item.type === 'pair_request') {
+      router.push('/pairing');
+    } else if (item.type === 'pair_approved') {
+      void qc.invalidateQueries({ queryKey: queryKeys.session });
+    }
+  };
+
   const renderItem = ({ item }: { item: AppNotification }) => (
     <Pressable
-      onPress={() => !item.isRead && markRead.mutate(item.id)}
+      onPress={() => handlePress(item)}
       accessibilityRole="button"
       accessibilityLabel={item.title}
       style={[

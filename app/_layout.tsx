@@ -7,7 +7,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '@/providers/AppProviders';
 import { ErrorBoundary } from '@/components';
-import { useSession, usePushRegistration } from '@/hooks';
+import { useSession, usePushRegistration, useAppStateSync } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import '@/lib/i18n'; // i18n の初期化（副作用）
 
@@ -19,6 +19,8 @@ function RootNavigator() {
 
   // ログイン時にプッシュ通知トークンを登録し、通知タップの遷移を有効化する。
   usePushRegistration();
+  // フォアグラウンド復帰時にセッション・通知・ペア申請を同期する（パートナー側の変更に追従）。
+  useAppStateSync();
 
   // セッション状態に応じてリダイレクト（未ログイン→認証 / ログイン済み→メイン）
   useEffect(() => {

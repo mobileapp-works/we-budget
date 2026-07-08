@@ -12,6 +12,7 @@ import type { SettlementBalance, UUID } from '@/types/models';
 import {
   toProfile,
   toPair,
+  toPairRequest,
   toCategory,
   toExpense,
   toFixedCost,
@@ -216,11 +217,46 @@ export const supabaseBackend: Backend = {
     return data.invite_code;
   },
 
-  async joinPair(inviteCode) {
+  async requestPair(inviteCode) {
     const sb = requireSupabase();
-    const { error } = await sb.rpc('join_pair', { p_invite_code: inviteCode });
+    const { error } = await sb.rpc('request_pair', { p_invite_code: inviteCode });
+    if (error) throw error;
+  },
+
+  async getOutgoingPairRequest() {
+    const sb = requireSupabase();
+    const { userId } = await context();
+    // 最新1件を状態ごと返す（pending→approved/declined の遷移をポーリングで検知するため）。
+    const { data, error } = await sb
+      .from('pair_requests')
+      .select('*')
+      .eq('requester_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? toPairRequest(data) : null;
+  },
+
+  async listIncomingPairRequests() {
+    const sb = requireSupabase();
+    // RLS では申請者のプロフィールを読めないため、表示名込みで返す RPC を使う。
+    const { data, error } = await sb.rpc('list_incoming_pair_requests');
+    if (error) throw error;
+    return ((data ?? []) as Record<string, unknown>[]).map(toPairRequest);
+  },
+
+  async respondPairRequest(requestId, approve) {
+    const sb = requireSupabase();
+    const { error } = await sb.rpc('respond_pair_request', { p_request_id: requestId, p_approve: approve });
     if (error) throw error;
     return buildSession();
+  },
+
+  async cancelPairRequest(requestId) {
+    const sb = requireSupabase();
+    const { error } = await sb.rpc('cancel_pair_request', { p_request_id: requestId });
+    if (error) throw error;
   },
 
   async leavePair() {

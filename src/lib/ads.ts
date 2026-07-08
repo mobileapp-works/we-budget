@@ -29,6 +29,11 @@ const TEST_BANNER_UNIT_ID =
     ? 'ca-app-pub-3940256099942544/2934735716'
     : 'ca-app-pub-3940256099942544/6300978111';
 
+const TEST_INTERSTITIAL_UNIT_ID =
+  Platform.OS === 'ios'
+    ? 'ca-app-pub-3940256099942544/4411468910'
+    : 'ca-app-pub-3940256099942544/1033173712';
+
 /**
  * 表示するバナー広告ユニットIDを返す。
  * - 開発ビルド（__DEV__）またはモック時は常にテストID
@@ -38,4 +43,31 @@ export function getBannerAdUnitId(): string {
   if (__DEV__ || IS_MOCK) return TEST_BANNER_UNIT_ID;
   const prodUnitId = Platform.OS === 'ios' ? ENV.admobBannerIos : ENV.admobBannerAndroid;
   return prodUnitId || TEST_BANNER_UNIT_ID;
+}
+
+/**
+ * インタースティシャル（全画面）広告ユニットIDを返す。方針はバナーと同じ。
+ */
+export function getInterstitialAdUnitId(): string {
+  if (__DEV__ || IS_MOCK) return TEST_INTERSTITIAL_UNIT_ID;
+  const prodUnitId = Platform.OS === 'ios' ? ENV.admobInterstitialIos : ENV.admobInterstitialAndroid;
+  return prodUnitId || TEST_INTERSTITIAL_UNIT_ID;
+}
+
+/**
+ * インタースティシャル（全画面）広告を「出さない」ユーザーのメールアドレス除外リスト。
+ * ここにメールアドレスを追加すると、そのユーザーには全画面広告を表示しない。
+ * ※バナー広告には影響しない（バナーは全ユーザーに表示）。
+ * 用途例: 自分/家族のアカウント、ベータ協力者など。
+ * 比較は大文字小文字を無視（小文字で保持）。
+ */
+export const INTERSTITIAL_AD_EXCLUDED_EMAILS: readonly string[] = [
+  'taishirou16@gmail.com',
+  'kanaho-s.twins_213@docomo.ne.jp',
+];
+
+/** 指定メールアドレスのユーザーがインタースティシャル除外対象かを返す。 */
+export function isInterstitialSuppressedFor(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return INTERSTITIAL_AD_EXCLUDED_EMAILS.includes(email.trim().toLowerCase());
 }

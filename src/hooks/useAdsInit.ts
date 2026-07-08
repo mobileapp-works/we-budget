@@ -12,6 +12,7 @@
  */
 import { useEffect } from 'react';
 import { adsSupported } from '@/lib/ads';
+import { preloadInterstitial } from '@/lib/interstitial';
 
 export function useAdsInit(): void {
   useEffect(() => {
@@ -40,6 +41,11 @@ export function useAdsInit(): void {
       } catch (e) {
         if (__DEV__) console.warn('[ads] initialize failed', e);
       }
+
+      if (cancelled) return;
+
+      // 3) インタースティシャルを先読み（表示は支出保存時に頻度条件を満たしたとき）。
+      preloadInterstitial();
     })();
 
     return () => {
