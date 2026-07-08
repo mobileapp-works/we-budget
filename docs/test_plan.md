@@ -1,12 +1,14 @@
 # テスト計画書・結果（WeBudget）
 
-最終更新: 2026-06-26 / 対象: MVP（Expo SDK 54 / 実Supabase接続）
+最終更新: 2026-07-09（単体テスト75件に更新・「7. DB / migration 検証」追加・状況の棚卸し） / 対象: MVP（Expo SDK 54 / 実Supabase接続）
 
 ## 1. テスト対象機能
 
 | 機能名 | 重要度 | テスト手法 | 結果 |
 |--------|--------|-----------|------|
-| お金の計算（換算/立替/予算/共同残高） | 高 | 単体テスト | ✅ Pass（52件） |
+| お金の計算（換算/立替/予算/共同残高） | 高 | 単体テスト | ✅ Pass（75件中） |
+| レシートOCRの抽出（金額/店名/日付） | 高 | 単体テスト | ✅ Pass（16件） |
+| DB / migration の適用・動作（SQL） | 高 | SQL Editor（§7） | 要確認 |
 | 入力バリデーション（金額/メール/パスワード） | 高 | 単体テスト | ✅ Pass |
 | ユーザー認証（登録/ログイン/ログアウト） | 高 | 手動（実機） | 要確認 |
 | 立替精算（残高計算/精算実行/履歴） | 高 | 単体＋手動 | ロジック✅ / フロー要確認 |
@@ -19,15 +21,16 @@
 
 | テストファイル | テスト数 | Pass | Fail |
 |--------------|---------|------|------|
-| money.test.ts | 13 | 13 | 0 |
-| settlement.test.ts | 12 | 12 | 0 |
-| budget.test.ts | 9 | 9 | 0 |
-| sharedAccount.test.ts | 5 | 5 | 0 |
+| settlement.test.ts | 19 | 19 | 0 |
+| receipt.test.ts | 16 | 16 | 0 |
+| money.test.ts | 12 | 12 | 0 |
+| budget.test.ts | 10 | 10 | 0 |
 | validation.test.ts | 8 | 8 | 0 |
+| sharedAccount.test.ts | 5 | 5 | 0 |
 | date.test.ts | 5 | 5 | 0 |
-| **合計** | **52** | **52** | **0** |
+| **合計** | **75** | **75** | **0** |
 
-実行: `npm test` / 型チェック: `npm run typecheck`（エラー0）
+実行: `npm test` / 型チェック: `npm run typecheck`（エラー0）※件数は 2026-07-09 実行結果
 
 ### カバーしている重要ケース
 - 立替: 50:50 / カスタム割合 / 双方同額で精算不要 / 精算済み除外 / 共同口座払い除外 / ソロモード / 複数支出混在 / 退会者(null)除外 / 外貨換算 / レート未設定の警告 / 端数の整数丸め
@@ -98,15 +101,15 @@
 
 ### 機能面
 - [ ] 全MVP機能が動作 / クラッシュする操作がない
-- [ ] アカウント削除が実際に動く（**Edge Function `delete-account` デプロイ後**）
+- [ ] アカウント削除が実際に動く（Edge Function デプロイ済。**捨てアカウント**で実削除を確認 → §7-2）
 
 ### ストア提出面
-- [ ] アプリアイコン（1024×1024）設定 ← **未対応（デフォルト無地）**
+- [x] アプリアイコン（1024×1024）設定（アイコン・スプラッシュ作成済み・app.json 設定済み）
 - [ ] スクリーンショット（6.9インチiPhone必須 / iPad）
-- [ ] プライバシーポリシーURL（GitHub Pages公開） ← htmlは用意済み、**Pages有効化が必要**
+- [x] プライバシーポリシーURL 公開（**2026-07-09 200確認済み**。提出時に App Store Connect へ URL 設定）
 - [x] プライバシーマニフェスト（app.json）
-- [ ] ATT/UMP同意（広告ありの場合）
-- [x] ログアウト・アカウント削除の導線（削除の実処理はEdge Function待ち）
+- [~] ATT/UMP同意（クライアント実装済み。AdMob 管理画面での GDPR フォーム＋ATTメッセージ構成が残）
+- [x] ログアウト・アカウント削除の導線（delete-account デプロイ済）
 
 ### パフォーマンス
 - [ ] 起動時間が許容範囲
@@ -114,8 +117,78 @@
 - [ ] 画面往復でメモリが増え続けない
 
 ## 6. 既知の制限事項（MVP）
-- **共同口座残高は当月スコープ**で集計（全期間累積ではない）。設計でMVP許容済み。将来、全期間の共同支出を引く実装に拡張。
-- **レシートOCR**は画像添付まで（自動読取はEdge Function実装後）。
-- **プッシュ通知**はアプリ内通知のみ動作（実配信はトークン登録＋Edge Function後）。
-- **Sentry/AdMob**は枠のみ（実接続は収益化/監視フェーズ）。
-- 為替レートは最新1件方式（支出日時点の履歴なし）。
+- 共同口座残高は当月スコープ → **2026-07-08 に全期間Σへ修正済み**（`listSharedExpenses`。§7-2 で残高整合を確認）。
+- **レシートOCR**は端末内OCR（ML Kit）で実装済み。**dev build でのみ実動作**（Expo Go はサンプル表示）。
+- **プッシュ通知**は Edge Function デプロイ・Webhook 設定済み。実機 dev build での受信確認が残（§7-2 で配線確認可）。
+- **AdMob** はバナー＋インタースティシャル実装済み（iOS 本番ID設定済み・Android はテストID）。**Sentry** は枠のみ。
+- 為替レートは最新1件方式（支出日時点の履歴なし）。為替レート入力UIは未実装（review A-3）。
+- 二重レシート登録防止は未実装（将来課題）。
+
+## 7. DB / migration 検証（総合テスト時に SQL Editor で実行）
+
+適用済み前提: **0001〜0005・0007〜0010**（0006 は任意）。Supabase ダッシュボードの SQL Editor で以下を実行し、期待結果と一致することを確認する。
+
+### 7-1. オブジェクトの存在確認（適用の棚卸し）
+
+- [ ] **テーブル**（0001・0010）
+  ```sql
+  select table_name from information_schema.tables
+  where table_schema = 'public' order by 1;
+  ```
+  期待: `budgets / categories / exchange_rates / expenses / fixed_costs / notification_settings / notifications / pair_requests / pairs / profiles / settlements / shared_account` の12件（`pair_requests` がなければ 0010 未適用）
+
+- [ ] **RLS が全テーブルで有効**（0002）
+  ```sql
+  select relname, relrowsecurity from pg_class
+  where relnamespace = 'public'::regnamespace and relkind = 'r' order by 1;
+  ```
+  期待: 全行 `relrowsecurity = true`
+
+- [ ] **関数（RPC・トリガー関数）**（0002/0004/0005/0009/0010）
+  ```sql
+  select proname from pg_proc
+  where pronamespace = 'public'::regnamespace order by 1;
+  ```
+  期待に含まれる: `calculate_settlement_balance / cancel_pair_request / execute_settlement / get_my_pair_id / handle_new_user / leave_pair / list_incoming_pair_requests / notify_partner / notify_user / on_expense_change / on_settlement_insert / post_fixed_expenses / request_pair / respond_pair_request / send_variable_reminders / touch_updated_at / update_split_ratio`
+  期待に**含まれない**: `join_pair`（0010 で drop 済み。残っていれば 0010 未適用）
+
+- [ ] **Storage バケット**（0003・0007）
+  ```sql
+  select id, public from storage.buckets order by 1;
+  ```
+  期待: `avatars`(public) / `category-icons`(public) / `receipts`(非public) の3件（`category-icons` がなければ 0007 未適用）
+
+- [ ] **pg_cron ジョブ**（0005）
+  ```sql
+  select jobname, schedule, active from cron.job order by jobname;
+  ```
+  期待: `webudget_post_fixed_expenses`（`0 15 * * *`）と `webudget_variable_reminders`（`15 15 * * *`）が **active = true**
+
+- [ ] **0008 の CHECK 制約**（アカウント削除後の匿名化を許容）
+  ```sql
+  select pg_get_constraintdef(oid) from pg_constraint
+  where conname = 'payer_xor_shared';
+  ```
+  期待: 個人払い側の条件が `(is_shared_payment = false)` のみ（`payer_user_id IS NOT NULL` の必須条件が残っていれば 0008 未適用）
+
+- [ ] **notifications.type の CHECK**（0009/0010 で追加した種別）
+  ```sql
+  select pg_get_constraintdef(oid) from pg_constraint
+  where conrelid = 'notifications'::regclass and contype = 'c';
+  ```
+  期待: `settlement` / `pair_request` / `pair_approved` / `pair_declined` を含む
+
+### 7-2. 動作スモーク（SQL 起点）
+
+- [ ] **固定費の自動計上（0005）**: `select post_fixed_expenses();` がエラーなく完了 → `billing_day` を当日(JST)にした type=fixed の固定費が expenses に生成される。**もう一度実行しても重複生成されない**（冪等）。自動計上分の「パートナーが記録」通知が出ないこと
+- [ ] **変動費リマインド（0005）**: `select send_variable_reminders();` がエラーなく完了 → `reminder_day` 当日・当月未入力の変動費についてペア両者に `reminder_variable` 通知
+- [ ] **プッシュ配線**: `notifications` に1行 INSERT → Edge Function `send-push-notification` の Logs に処理ログが出る（トークン未登録なら `skipped: no token` でOK＝Webhook→関数の配線は正常）
+- [ ] **精算通知（0009）**: アプリから精算を1回実行 → 両者に `settlement` 通知が届く・`expense_edited` 通知が連発**しない**・精算後の立替残高が0
+- [ ] **アカウント削除（0008）**: **捨てアカウント**に個人払い支出を作成 → 設定→アカウント削除が成功しログアウトされる（0008 未適用だと制約違反で500）→ 該当支出の `payer_user_id` が NULL（匿名化）で行自体は残る ※本番アカウントでは絶対にやらない
+- [ ] **カテゴリ写真（0007）**: カテゴリ管理で写真を設定 → `category-icons` バケットに `{pair_id}/` 配下でオブジェクトが作成され、他画面でも表示される
+
+### 7-3. RLS / ペア分離（2アカウント・test_plan §4 と併走）
+
+- [ ] ペア外ユーザーの支出・通知・レシート画像（署名URL）にアクセスできない
+- [ ] `pair_requests` は当事者のみ SELECT できる（第三者アカウントには見えない）
+- [ ] 承認制ペアリングのE2E: 申請 → 招待側に `pair_request` 通知 → 承認 → 成立・申請者に `pair_approved` 通知（0010）
