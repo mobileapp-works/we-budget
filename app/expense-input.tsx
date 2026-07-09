@@ -26,6 +26,7 @@ import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius, SUPPORTED_CURRENCIES, APP_CONFIG } from '@/constants';
 import { parseAmount } from '@/utils';
 import { recordSaveAndMaybeShowInterstitial } from '@/lib/interstitial';
+import { prepareReceiptUpload } from '@/lib/receiptImage';
 import type { ExpenseInput, ImageUpload } from '@/data';
 import type { UUID } from '@/types/models';
 
@@ -121,26 +122,33 @@ export default function ExpenseInputScreen() {
       toast.show(t('error.cameraPermission'), 'error');
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.6, base64: true });
+    // OCRに圧縮ノイズを載せないため最高画質で撮影する（アップロード用は後で縮小する）。
+    const result = await ImagePicker.launchCameraAsync({ quality: 1 });
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
     setImageUri(asset.uri);
-    if (asset.base64) {
-      setPendingReceipt({ uri: asset.uri, base64: asset.base64, contentType: asset.mimeType ?? 'image/jpeg' });
-    }
     setStep('form');
 
     // 撮影画像を端末内OCR（ML Kit）にかけ、抽出結果でフォームを自動入力する。
+    // 失敗の内容（文字なし / 金額だけ取れず / エラー）に応じて案内を変える。
     ocr.mutate(asset.uri, {
       onSuccess: (data) => {
         applyOcr(data);
-        // 何も抽出できなければ読み取り失敗、少しでも拾えたら確認を促す。
-        const gotSomething = data.amount !== null || data.storeName || data.date;
-        toast.show(gotSomething ? t('expense.ocrReview') : t('expense.ocrFailed'), gotSomething ? 'info' : 'error');
+        if (!data.rawText.trim()) {
+          toast.show(t('expense.ocrNoText'), 'error');
+        } else if (data.amount === null) {
+          toast.show(t('expense.ocrNoAmount'), 'error');
+        } else {
+          toast.show(t('expense.ocrReview'), 'info');
+        }
       },
       onError: () => toast.show(t('expense.ocrFailed'), 'error'),
     });
+
+    // アップロード用は縮小・再圧縮した別ファイルにする（OCRと保存で要求が違う）。
+    const upload = await prepareReceiptUpload(asset);
+    if (upload) setPendingReceipt(upload);
   };
 
   /** 支払い者の選択をユーザーIDへ解決する。 */

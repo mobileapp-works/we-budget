@@ -5,3 +5,4 @@ export * from './sharedAccount';
 export * from './date';
 export * from './validation';
 export * from './receipt';
+export * from './ocrRows';

@@ -5,11 +5,18 @@
  * 日本語スクリプトモデルはラテン文字（数字・英字）も同時に認識するため、
  * 日本語レシートも英語レシートも Japanese 指定ひとつでカバーできる。
  *
+ * 品質のポイント: `result.text` をそのまま使わず、行のバウンディングボックスから
+ * 「物理的な行」を再構成する（reconstructRows）。レシートは品名（左）と金額（右）の
+ * 2列組みが多く、ML Kit は列ごとに別ブロックで返すことがある。その場合 `result.text` は
+ * 「ラベル全部 → 金額全部」の順になり、「合計」と金額の紐付けに失敗するため。
+ *
  * ネイティブモジュールは development / production ビルド（EAS または prebuild）でのみ有効。
  * Expo Go では未リンクのため、開発時に限りサンプルテキストへフォールバックして UI を確認できるようにする。
  */
 import dayjs from 'dayjs';
 import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
+import { reconstructRows } from '@/utils/ocrRows';
+import type { OcrTextLine } from '@/utils/ocrRows';
 
 /** Expo Go 等でネイティブが無い時に、自動入力フローを確認するためのサンプルレシート。 */
 function sampleReceiptText(): string {
@@ -27,14 +34,18 @@ function sampleReceiptText(): string {
 }
 
 /**
- * 画像URI（file://...）を端末内OCRにかけ、認識した全文テキストを返す。
- * 抽出（金額/店名/日付）は呼び出し側の parseReceiptText が担う。
+ * 画像URI（file://...）を端末内OCRにかけ、読み順（上→下、左→右）に整形した
+ * 全文テキストを返す。抽出（金額/店名/日付）は呼び出し側の parseReceiptText が担う。
  */
 export async function recognizeReceiptText(imageUri: string): Promise<string> {
   try {
     // Japanese モデルは和文＋ラテン文字の両方を認識する。
     const result = await TextRecognition.recognize(imageUri, TextRecognitionScript.JAPANESE);
-    return result.text ?? '';
+    const lines: OcrTextLine[] = result.blocks.flatMap((block) =>
+      block.lines.map((line) => ({ text: line.text, frame: line.frame }))
+    );
+    // 座標が取れないとき（環境差）は ML Kit の並び順テキストへフォールバック。
+    return reconstructRows(lines) ?? result.text ?? '';
   } catch (e) {
     // Expo Go 等でネイティブ未リンクの場合、開発時のみサンプルで動かす（本番ビルドでは実際に読み取る）。
     if (__DEV__) return sampleReceiptText();
