@@ -31,6 +31,12 @@ export default function NotificationsScreen() {
       router.push('/pairing');
     } else if (item.type === 'pair_approved') {
       void qc.invalidateQueries({ queryKey: queryKeys.session });
+    } else if (item.type === 'budget_warning' || item.type === 'budget_exceeded') {
+      router.push('/budget');
+    } else if (item.type === 'settlement' || item.type === 'settlement_reminder') {
+      router.push('/settlement');
+    } else if (item.type === 'reminder_variable') {
+      router.push('/fixed-costs');
     }
   };
 

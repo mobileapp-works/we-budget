@@ -1,6 +1,20 @@
 # 実装ログ（WeBudget）
 
-> 最終更新: 2026-07-09（プライバシーポリシー URL 公開完了・200 確認）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+> 最終更新: 2026-07-09（予算アラート・月末精算リマインド・為替レート入力UI 実装。**0011 要適用**）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+
+## 2026-07-09 予算アラート・月末精算リマインド・為替レート入力UI（migration 0011・**要適用**）
+
+レビュー（review_2026-07-08.md）で未実装だった MVP 要件 R-8 / R-9 / R-3 をまとめて実装。
+
+- **migration `0011_budget_alerts_settlement_reminder.sql`（未適用・要 SQL Editor 実行）**:
+  - **予算アラート（要件#9・7-3）**: `budget_alerts` テーブル（予算×月×閾値で一意＝同月の重複送信防止。RLS=ペアの SELECT のみ・書き込みはトリガー）+ `check_budget_alerts(pair_id)`（当月JSTの支出を JPY 換算で集計＝クライアント `calculateBudgetUsage` と同一条件（全支出対象・レート未設定外貨は除外）。80%で `budget_warning`・100%で `budget_exceeded` を**両ユーザー**へ `notify_user` 経由で送信＝設定ゲート `budget_alert` + 既存プッシュWebhookに自動で乗る。80/100を同時に跨いだ場合は超過のみ通知）。`on_expense_change` に配線（INSERT / 編集UPDATE で評価。**0009 の精算スタンプ抑止・自動計上の記録通知スキップは維持**。自動計上 INSERT も予算チェックは行う＝家賃で予算超過も検知）
+  - **月末精算リマインド（要件#5・7-1・7-6）**: `send_settlement_reminders()`（**JSTの月末日のみ**実行。`calculate_settlement_balance` > 0 のペア両者へ `settlement_reminder` 通知・金額入り）+ pg_cron ジョブ3本目 `webudget_settlement_reminders`（毎日 UTC 11:00 = **JST 20:00**）
+  - notifications.type の CHECK / notification_settings（`budget_alert`・`settlement_reminder` 列）は 0001 で定義済みのため変更なし。通知文言はサーバー側日本語固定（多言語化は H-12 で別途）
+- **為替レート入力UI（要件7-9 / R-3）**: 精算画面に「為替レートの設定」カードを追加（レート未設定の外貨 + 設定済みレートの修正が同カードで可能。`1 {通貨} あたりの円` を入力→`parseAmount` 検証→保存）。保存で rates と settlementBalance を invalidate → 外貨立替が精算残高に即反映。未設定警告は残高0のカードにも表示するよう追加。`useExchangeRateActions.upsertRate` の onSuccess に settlementBalance 無効化を追加
+- **通知タップ遷移（H-14 の主要分）**: budget_warning / budget_exceeded → 予算画面、settlement / settlement_reminder → 精算画面、reminder_variable → 固定費画面
+- **mockパリティ**: mockBackend の支出追加/編集でも予算アラートを発火（Expo Go・モックでデモ可能）。閾値判定は純粋関数 `newlyReachedBudgetThresholds`（`src/utils/budget.ts`）に切り出し
+- 検証: typecheck / **jest 81件**（+6: 閾値判定の境界・重複防止・同時跨ぎ） / expo export --platform ios すべてパス
+- [ ] **残: 0011 の適用（SQL Editor）**。適用後の検証SQLは [test_plan.md](test_plan.md) §7 に追記済み（budget_alerts・関数2つ・cronジョブ3本目・動作スモーク）
 
 ## 2026-07-09 GitHub Pages 404 解消（プライバシーポリシー公開完了）
 

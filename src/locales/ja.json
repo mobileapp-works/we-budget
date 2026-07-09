@@ -158,7 +158,13 @@
     "soloEmptyBody": "ペアになると立替の精算ができます。",
     "noBalanceTitle": "精算はありません",
     "noBalanceBody": "立替の差額はありません。",
-    "unconvertedWarning": "為替レート未設定の通貨があり、精算に含まれていません: {{currencies}}"
+    "unconvertedWarning": "為替レート未設定の通貨があり、精算に含まれていません: {{currencies}}",
+    "enterRatesTitle": "為替レートの設定",
+    "enterRatesBody": "1単位あたりの円を入力すると、外貨の支出が精算に含まれます。",
+    "rateLabel": "1 {{currency}} あたりの円",
+    "ratePlaceholder": "例: 150",
+    "saveRates": "レートを保存",
+    "ratesSaved": "為替レートを保存しました"
   },
   "sharedAccount": {
     "title": "共同口座",

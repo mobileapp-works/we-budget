@@ -25,6 +25,24 @@ export function getBudgetStatus(percent: number): BudgetStatus {
   return 'safe';
 }
 
+/** 予算アラートの閾値（要件7-3: 80%で警告 / 100%で超過）。昇順。 */
+export const BUDGET_ALERT_THRESHOLDS: readonly number[] = [
+  APP_CONFIG.budgetWarningPercent,
+  APP_CONFIG.budgetExceededPercent,
+];
+
+/**
+ * 新たに到達した予算アラート閾値を返す（送信済みは除外・昇順）。
+ * 80%と100%を同時に跨いだ場合は [80, 100] を返し、呼び出し側は最大値の
+ * アラートだけを通知する（DB側 check_budget_alerts と同じ挙動）。
+ */
+export function newlyReachedBudgetThresholds(
+  percent: number,
+  sentThresholds: readonly number[]
+): number[] {
+  return BUDGET_ALERT_THRESHOLDS.filter((th) => percent >= th && !sentThresholds.includes(th));
+}
+
 /**
  * 支出リストと予算上限から使用状況を計算する。
  * expenses は「予算スコープ（対象カテゴリ・対象月）」で絞り込み済みのものを渡す。

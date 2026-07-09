@@ -21,7 +21,11 @@ export function useExchangeRateActions() {
   const upsertRate = useMutation({
     mutationFn: ({ fromCurrency, rate }: { fromCurrency: string; rate: number }) =>
       backend.upsertExchangeRate(fromCurrency, rate),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.rates(session.pair.id) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.rates(session.pair.id) });
+      // 精算残高はサーバー側でレートを使って再計算されるため取り直す
+      void qc.invalidateQueries({ queryKey: queryKeys.settlementBalance(session.pair.id) });
+    },
   });
 
   return { upsertRate };

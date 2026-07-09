@@ -158,7 +158,13 @@
     "soloEmptyBody": "Pair up to settle reimbursements.",
     "noBalanceTitle": "Nothing to settle",
     "noBalanceBody": "There's no outstanding balance.",
-    "unconvertedWarning": "Some currencies lack an exchange rate and are excluded: {{currencies}}"
+    "unconvertedWarning": "Some currencies lack an exchange rate and are excluded: {{currencies}}",
+    "enterRatesTitle": "Exchange rates",
+    "enterRatesBody": "Enter JPY per unit to include foreign-currency expenses in settlement.",
+    "rateLabel": "JPY per 1 {{currency}}",
+    "ratePlaceholder": "e.g. 150",
+    "saveRates": "Save rates",
+    "ratesSaved": "Exchange rates saved"
   },
   "sharedAccount": {
     "title": "Shared account",

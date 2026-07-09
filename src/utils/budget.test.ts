@@ -1,4 +1,4 @@
-import { calculateBudgetUsage, getBudgetStatus } from './budget';
+import { calculateBudgetUsage, getBudgetStatus, newlyReachedBudgetThresholds } from './budget';
 import { makeExpense, makeRate } from '@/test-utils/factories';
 
 describe('getBudgetStatus', () => {
@@ -52,5 +52,31 @@ describe('calculateBudgetUsage', () => {
     const usage = calculateBudgetUsage(expenses, 10000);
     expect(usage.used).toBe(5000);
     expect(usage.unconvertedCurrencies).toContain('USD');
+  });
+});
+
+describe('newlyReachedBudgetThresholds', () => {
+  it('79%では何も返さない', () => {
+    expect(newlyReachedBudgetThresholds(79, [])).toEqual([]);
+  });
+
+  it('80%到達で [80] を返す', () => {
+    expect(newlyReachedBudgetThresholds(80, [])).toEqual([80]);
+  });
+
+  it('80%送信済みなら85%でも何も返さない（重複防止）', () => {
+    expect(newlyReachedBudgetThresholds(85, [80])).toEqual([]);
+  });
+
+  it('80%送信済みから100%超過で [100] を返す', () => {
+    expect(newlyReachedBudgetThresholds(105, [80])).toEqual([100]);
+  });
+
+  it('一気に100%を跨いだら [80, 100] を返す（通知は最大値のみが呼び出し側の責務）', () => {
+    expect(newlyReachedBudgetThresholds(120, [])).toEqual([80, 100]);
+  });
+
+  it('両方送信済みなら何も返さない', () => {
+    expect(newlyReachedBudgetThresholds(150, [80, 100])).toEqual([]);
   });
 });

@@ -121,12 +121,12 @@
 - **レシートOCR**は端末内OCR（ML Kit）で実装済み。**dev build でのみ実動作**（Expo Go はサンプル表示）。
 - **プッシュ通知**は Edge Function デプロイ・Webhook 設定済み。実機 dev build での受信確認が残（§7-2 で配線確認可）。
 - **AdMob** はバナー＋インタースティシャル実装済み（iOS 本番ID設定済み・Android はテストID）。**Sentry** は枠のみ。
-- 為替レートは最新1件方式（支出日時点の履歴なし）。為替レート入力UIは未実装（review A-3）。
+- 為替レートは最新1件方式（支出日時点の履歴なし）。入力UIは精算画面に実装済み（2026-07-09）。
 - 二重レシート登録防止は未実装（将来課題）。
 
 ## 7. DB / migration 検証（総合テスト時に SQL Editor で実行）
 
-適用済み前提: **0001〜0005・0007〜0010**（0006 は任意）。Supabase ダッシュボードの SQL Editor で以下を実行し、期待結果と一致することを確認する。
+適用済み前提: **0001〜0005・0007〜0011**（0006 は任意。**0011 は 2026-07-09 作成→適用状況を要確認**）。Supabase ダッシュボードの SQL Editor で以下を実行し、期待結果と一致することを確認する。
 
 ### 7-1. オブジェクトの存在確認（適用の棚卸し）
 
@@ -135,7 +135,7 @@
   select table_name from information_schema.tables
   where table_schema = 'public' order by 1;
   ```
-  期待: `budgets / categories / exchange_rates / expenses / fixed_costs / notification_settings / notifications / pair_requests / pairs / profiles / settlements / shared_account` の12件（`pair_requests` がなければ 0010 未適用）
+  期待: `budget_alerts / budgets / categories / exchange_rates / expenses / fixed_costs / notification_settings / notifications / pair_requests / pairs / profiles / settlements / shared_account` の13件（`pair_requests` がなければ 0010 未適用、`budget_alerts` がなければ 0011 未適用）
 
 - [ ] **RLS が全テーブルで有効**（0002）
   ```sql
@@ -149,7 +149,7 @@
   select proname from pg_proc
   where pronamespace = 'public'::regnamespace order by 1;
   ```
-  期待に含まれる: `calculate_settlement_balance / cancel_pair_request / execute_settlement / get_my_pair_id / handle_new_user / leave_pair / list_incoming_pair_requests / notify_partner / notify_user / on_expense_change / on_settlement_insert / post_fixed_expenses / request_pair / respond_pair_request / send_variable_reminders / touch_updated_at / update_split_ratio`
+  期待に含まれる: `calculate_settlement_balance / cancel_pair_request / check_budget_alerts / execute_settlement / get_my_pair_id / handle_new_user / leave_pair / list_incoming_pair_requests / notify_partner / notify_user / on_expense_change / on_settlement_insert / post_fixed_expenses / request_pair / respond_pair_request / send_settlement_reminders / send_variable_reminders / touch_updated_at / update_split_ratio`（`check_budget_alerts` / `send_settlement_reminders` がなければ 0011 未適用）
   期待に**含まれない**: `join_pair`（0010 で drop 済み。残っていれば 0010 未適用）
 
 - [ ] **Storage バケット**（0003・0007）
@@ -162,7 +162,7 @@
   ```sql
   select jobname, schedule, active from cron.job order by jobname;
   ```
-  期待: `webudget_post_fixed_expenses`（`0 15 * * *`）と `webudget_variable_reminders`（`15 15 * * *`）が **active = true**
+  期待: `webudget_post_fixed_expenses`（`0 15 * * *`）・`webudget_variable_reminders`（`15 15 * * *`）・`webudget_settlement_reminders`（`0 11 * * *`＝JST 20:00、0011）の3本が **active = true**
 
 - [ ] **0008 の CHECK 制約**（アカウント削除後の匿名化を許容）
   ```sql
@@ -184,6 +184,9 @@
 - [ ] **変動費リマインド（0005）**: `select send_variable_reminders();` がエラーなく完了 → `reminder_day` 当日・当月未入力の変動費についてペア両者に `reminder_variable` 通知
 - [ ] **プッシュ配線**: `notifications` に1行 INSERT → Edge Function `send-push-notification` の Logs に処理ログが出る（トークン未登録なら `skipped: no token` でOK＝Webhook→関数の配線は正常）
 - [ ] **精算通知（0009）**: アプリから精算を1回実行 → 両者に `settlement` 通知が届く・`expense_edited` 通知が連発**しない**・精算後の立替残高が0
+- [ ] **予算アラート（0011）**: 予算を設定し 80% を跨ぐ支出を追加 → 両者に `budget_warning` 通知が**1回だけ**届く（同月内でさらに支出を足しても再送されない）→ 100% を跨ぐ → `budget_exceeded` が1回。budget_alerts に行が記録される（`select * from budget_alerts;`）。80%と100%を一気に跨いだ場合は超過通知のみ
+- [ ] **月末精算リマインド（0011）**: `select send_settlement_reminders();` を月末日以外に実行すると **0** が返る（何も送られない）。動作確認は未精算残高がある状態で月末日に実行（またはテスト時のみ関数内の日付判定を確認）→ 両者に `settlement_reminder` 通知・金額入り
+- [ ] **為替レート入力（R-3）**: 外貨（例: USD）の立替支出を作る → 精算画面に「精算に含まれていません」警告とレート設定カードが出る → レートを入力して保存 → 残高が外貨込みで再計算される・警告が消える
 - [ ] **アカウント削除（0008）**: **捨てアカウント**に個人払い支出を作成 → 設定→アカウント削除が成功しログアウトされる（0008 未適用だと制約違反で500）→ 該当支出の `payer_user_id` が NULL（匿名化）で行自体は残る ※本番アカウントでは絶対にやらない
 - [ ] **カテゴリ写真（0007）**: カテゴリ管理で写真を設定 → `category-icons` バケットに `{pair_id}/` 配下でオブジェクトが作成され、他画面でも表示される
 

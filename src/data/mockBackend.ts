@@ -21,7 +21,14 @@ import type {
   UUID,
 } from '@/types/models';
 import { DEFAULT_CATEGORIES } from '@/constants';
-import { buildRateMap, calculateSettlementBalance, isSettleableExpense } from '@/utils';
+import {
+  buildRateMap,
+  calculateBudgetUsage,
+  calculateSettlementBalance,
+  isSettleableExpense,
+  newlyReachedBudgetThresholds,
+  BUDGET_ALERT_THRESHOLDS,
+} from '@/utils';
 import type {
   Backend,
   SessionContext,
@@ -235,6 +242,69 @@ state = seed();
 function profileOf(id: UUID | null): Profile | null {
   if (!id) return null;
   return state.profiles.find((p) => p.id === id) ?? null;
+}
+
+/** 予算アラートの送信済み記録（budget_alerts テーブルのモック。キー = budgetId:月:閾値）。 */
+const sentBudgetAlerts = new Set<string>();
+
+/** 通知本文用のデフォルトカテゴリ和名（DB側 check_budget_alerts と同じマッピング。多言語化は H-12）。 */
+const CATEGORY_LABELS_JA: Record<string, string> = {
+  'category.food': '食費',
+  'category.daily': '日用品',
+  'category.transport': '交通費',
+  'category.entertainment': '娯楽',
+  'category.utilities': '光熱費',
+  'category.rent': '家賃',
+  'category.telecom': '通信費',
+  'category.medical': '医療',
+  'category.other': 'その他',
+};
+
+/** 支出の追加・編集後に予算アラート（80/100%）を評価する（migration 0011 check_budget_alerts のモック版）。 */
+function fireBudgetAlerts(expenseDate: string) {
+  const monthKey = dayjs().format('YYYY-MM');
+  if (!expenseDate.startsWith(monthKey)) return; // 当月の支出のみ評価
+  for (const budget of state.budgets) {
+    const scoped = state.expenses.filter(
+      (e) =>
+        e.expenseDate.startsWith(monthKey) &&
+        (budget.categoryId === null || e.categoryId === budget.categoryId)
+    );
+    const usage = calculateBudgetUsage(scoped, budget.amount, state.rates);
+    const sent = BUDGET_ALERT_THRESHOLDS.filter((th) =>
+      sentBudgetAlerts.has(`${budget.id}:${monthKey}:${th}`)
+    );
+    const newly = newlyReachedBudgetThresholds(usage.percent, sent);
+    if (newly.length === 0) continue;
+    for (const th of newly) sentBudgetAlerts.add(`${budget.id}:${monthKey}:${th}`);
+
+    const threshold = Math.max(...newly);
+    const category = budget.categoryId
+      ? state.categories.find((c) => c.id === budget.categoryId)
+      : undefined;
+    const label = category
+      ? (category.name ?? CATEGORY_LABELS_JA[category.nameKey ?? ''] ?? category.nameKey ?? '')
+      : null;
+    const exceeded = threshold >= 100;
+    state.notifications.unshift({
+      id: uid('ntf'),
+      userId: state.currentUserId ?? ME,
+      pairId: state.pair.id,
+      type: exceeded ? 'budget_exceeded' : 'budget_warning',
+      title: exceeded ? '予算を超過しました' : '予算の80%に達しました',
+      body:
+        label === null
+          ? exceeded
+            ? '今月の全体予算を超過しました。'
+            : '今月の全体予算の80%に達しました。'
+          : exceeded
+            ? `「${label}」の今月の予算を超過しました。`
+            : `「${label}」の今月の予算が80%に達しました。`,
+      data: null,
+      isRead: false,
+      createdAt: nowIso(),
+    });
+  }
 }
 
 function buildSession(): SessionContext {
@@ -495,6 +565,7 @@ export const mockBackend: Backend = {
       ...input,
     };
     state.expenses.push(expense);
+    fireBudgetAlerts(expense.expenseDate);
     return { ...expense };
   },
 
@@ -507,6 +578,7 @@ export const mockBackend: Backend = {
       throw new Error('conflict');
     }
     Object.assign(expense, input, { updatedAt: nowIso() });
+    fireBudgetAlerts(expense.expenseDate);
     return { ...expense };
   },
 
