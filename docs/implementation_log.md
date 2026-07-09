@@ -1,12 +1,37 @@
 # 実装ログ（WeBudget）
 
-> 最終更新: 2026-07-09（予算アラート・月末精算リマインド・為替レート入力UI 実装。**0011 要適用**）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+> 最終更新: 2026-07-09（0011 適用済み・**0012（関数権限強化）要適用**・レシートOCR品質強化）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
 
-## 2026-07-09 予算アラート・月末精算リマインド・為替レート入力UI（migration 0011・**要適用**）
+## 2026-07-09 内部関数の EXECUTE 権限修正（migration 0012・**要適用**）
+
+- 0011 の適用確認を anon キー（REST /rpc/）で行った際に発見: **`revoke ... from public` では Supabase の関数保護にならない**。Supabase は関数作成時に anon / authenticated へ**個別に** EXECUTE を付与するため、0005・0011 の内部関数が実際には誰でも実行可能だった。
+- 実害の可能性（確認済み）: `notify_user` はユーザーUUIDを知っていれば**任意文言の通知（プッシュ含む）を他人に送れる**（ペア解除後の元パートナーはUUIDを知っている）／`send_variable_reminders` 等はリマインド日に連打で通知の重複送信が可能。
+- **`0012_function_execute_hardening.sql`（要 SQL Editor 実行）**: 内部専用6関数（notify_user / notify_partner / post_fixed_expenses / send_variable_reminders / send_settlement_reminders / check_budget_alerts）から anon・authenticated の EXECUTE を revoke。pg_cron（postgres実行）と SECURITY DEFINER 関数内からの呼び出し（定義者権限で権限チェック）には影響なし。
+- 適用後の確認SQL・REST確認は test_plan §7-1 に追記。**今後の教訓: 内部関数は `revoke ... from public` に加えて `from anon, authenticated` も必須。**
+
+## 2026-07-09 レシートOCR品質強化（端末内OCRのまま精度を最大化・DB変更なし）
+
+「読み取れない・別の数字を拾う」対策。原因は ①ML Kit の `result.text` が2列組みレシートで「ラベル全部→金額全部」の順になり合計と金額の紐付けが全滅する（列分断）②撮影 quality 0.6 のJPEG圧縮ノイズが細字を潰す ③電話番号・日付・レジ番号などの「金額でない数字」の混入、の3つ。
+
+- **`src/utils/ocrRows.ts`（新規・純粋関数）**: 行バウンディングボックスの縦の重なりで「物理行」を再構成（上→下・左→右）。frame が取れない環境では null → `result.text` にフォールバック
+- **`src/lib/ocr.ts`**: `result.text` をやめ、blocks/lines の frame から `reconstructRows` で読み順テキストを生成
+- **`src/utils/receipt.ts` 全面強化**:
+  - 正規化: 全角数字/￥/カンマ→半角、¥トークン内の誤読補正（O→0・l/I→1）
+  - ノイズ除去: 電話・郵便・日付時刻・レジ/伝票/会員番号・インボイスT番号・バーコード（8桁以上）・単価@・数量（×n/点/個）・マイナス値引きを金額抽出前に行から除去
+  - 行分類（合計/小計/税/預り/釣り/支払手段/割引/税率内訳/ポイント）→ 信頼度順に採用: 合計行（**小計+税と一致する候補を優先**して誤読の最大値を回避）→ **預り−釣りで復元** → 小計+税で復元 → 支払手段行 → 価格らしい明細の最大
+  - 合計語だけの行の直後の「金額のみ行」を救済（列分断がすり抜けた時の保険）
+  - 日付: 令和/R・平成/H・2桁年（YY/MM/DD）・年末尾（MM/DD/YYYY、不正ならDD/MM再解釈）・全角に対応。複数日付はテキスト先頭側を優先（ポイント有効期限の誤採用防止）
+  - 店名: 挨拶・住所（都道府県はじまり）・「領収書」ヘッダ・レジ/担当行をスキップ、走査を先頭8行に拡大
+- **撮影とアップロードの分離**: 撮影は quality 1 のままOCRへ（圧縮ノイズ回避）。アップロード用は `src/lib/receiptImage.ts`（新規）で**長辺1600px・JPEG 0.7 に縮小して base64 化**（通信量はむしろ削減）。依存追加: `expo-image-manipulator` ~14.0.8（Expo Go 内蔵モジュールなので dev build 不要層）
+- **エラーメッセージ段階化**（ja/en）: `expense.ocrNoText`（文字ゼロ→明るさ/真上からの撮り方を案内）/ `expense.ocrNoAmount`（金額だけ失敗→ピント案内）/ `ocrFailed`（例外時）に分割
+- 検証: typecheck / **jest 113件**（receipt+ocrRows 48件に拡充）すべてパス。実機での改善確認は dev build で（残）
+- **次リリース案（ユーザー発案・未着手）**: 端末内OCRで失敗した時に「リワード広告を見てクラウド高精度OCR（Vision等）を1回試す」フォールバック。解析層 `parseReceiptText` はそのまま共通流用できる設計
+
+## 2026-07-09 予算アラート・月末精算リマインド・為替レート入力UI（migration 0011・**適用済み**）
 
 レビュー（review_2026-07-08.md）で未実装だった MVP 要件 R-8 / R-9 / R-3 をまとめて実装。
 
-- **migration `0011_budget_alerts_settlement_reminder.sql`（未適用・要 SQL Editor 実行）**:
+- **migration `0011_budget_alerts_settlement_reminder.sql`（適用済み・2026-07-09。cron jobid=3 登録確認・RESTで budget_alerts / check_budget_alerts / send_settlement_reminders の存在と「月末日以外は0」動作を確認）**:
   - **予算アラート（要件#9・7-3）**: `budget_alerts` テーブル（予算×月×閾値で一意＝同月の重複送信防止。RLS=ペアの SELECT のみ・書き込みはトリガー）+ `check_budget_alerts(pair_id)`（当月JSTの支出を JPY 換算で集計＝クライアント `calculateBudgetUsage` と同一条件（全支出対象・レート未設定外貨は除外）。80%で `budget_warning`・100%で `budget_exceeded` を**両ユーザー**へ `notify_user` 経由で送信＝設定ゲート `budget_alert` + 既存プッシュWebhookに自動で乗る。80/100を同時に跨いだ場合は超過のみ通知）。`on_expense_change` に配線（INSERT / 編集UPDATE で評価。**0009 の精算スタンプ抑止・自動計上の記録通知スキップは維持**。自動計上 INSERT も予算チェックは行う＝家賃で予算超過も検知）
   - **月末精算リマインド（要件#5・7-1・7-6）**: `send_settlement_reminders()`（**JSTの月末日のみ**実行。`calculate_settlement_balance` > 0 のペア両者へ `settlement_reminder` 通知・金額入り）+ pg_cron ジョブ3本目 `webudget_settlement_reminders`（毎日 UTC 11:00 = **JST 20:00**）
   - notifications.type の CHECK / notification_settings（`budget_alert`・`settlement_reminder` 列）は 0001 で定義済みのため変更なし。通知文言はサーバー側日本語固定（多言語化は H-12 で別途）
@@ -14,7 +39,8 @@
 - **通知タップ遷移（H-14 の主要分）**: budget_warning / budget_exceeded → 予算画面、settlement / settlement_reminder → 精算画面、reminder_variable → 固定費画面
 - **mockパリティ**: mockBackend の支出追加/編集でも予算アラートを発火（Expo Go・モックでデモ可能）。閾値判定は純粋関数 `newlyReachedBudgetThresholds`（`src/utils/budget.ts`）に切り出し
 - 検証: typecheck / **jest 81件**（+6: 閾値判定の境界・重複防止・同時跨ぎ） / expo export --platform ios すべてパス
-- [ ] **残: 0011 の適用（SQL Editor）**。適用後の検証SQLは [test_plan.md](test_plan.md) §7 に追記済み（budget_alerts・関数2つ・cronジョブ3本目・動作スモーク）
+- [x] **0011 適用済み（2026-07-09）**。動作スモーク（80%跨ぎ・レート入力E2E等）は総合テスト時に [test_plan.md](test_plan.md) §7 で実施
+- [ ] **残: 0012（関数権限強化）の適用**（上のセクション参照。0011 の確認中に見つけたセキュリティ修正）
 
 ## 2026-07-09 GitHub Pages 404 解消（プライバシーポリシー公開完了）
 

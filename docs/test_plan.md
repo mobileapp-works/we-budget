@@ -126,7 +126,7 @@
 
 ## 7. DB / migration 検証（総合テスト時に SQL Editor で実行）
 
-適用済み前提: **0001〜0005・0007〜0011**（0006 は任意。**0011 は 2026-07-09 作成→適用状況を要確認**）。Supabase ダッシュボードの SQL Editor で以下を実行し、期待結果と一致することを確認する。
+適用済み前提: **0001〜0005・0007〜0011**（0006 は任意。0011 は 2026-07-09 適用済み）+ **0012（関数権限強化）= 要適用**。Supabase ダッシュボードの SQL Editor で以下を実行し、期待結果と一致することを確認する。
 
 ### 7-1. オブジェクトの存在確認（適用の棚卸し）
 
@@ -170,6 +170,17 @@
   where conname = 'payer_xor_shared';
   ```
   期待: 個人払い側の条件が `(is_shared_payment = false)` のみ（`payer_user_id IS NOT NULL` の必須条件が残っていれば 0008 未適用）
+
+- [ ] **内部関数の EXECUTE 権限**（0012。anon/authenticated から実行できないこと）
+  ```sql
+  select p.proname, has_function_privilege('anon', p.oid, 'execute') as anon_ok,
+         has_function_privilege('authenticated', p.oid, 'execute') as auth_ok
+  from pg_proc p
+  where p.pronamespace = 'public'::regnamespace
+    and p.proname in ('notify_user','notify_partner','post_fixed_expenses',
+                      'send_variable_reminders','send_settlement_reminders','check_budget_alerts');
+  ```
+  期待: 6行すべて `anon_ok = false` かつ `auth_ok = false`（true が残っていれば 0012 未適用。REST で `POST /rest/v1/rpc/notify_user` が 42501 permission denied になることでも確認可）
 
 - [ ] **notifications.type の CHECK**（0009/0010 で追加した種別）
   ```sql
