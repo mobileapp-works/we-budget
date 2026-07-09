@@ -21,7 +21,10 @@ export function TextField({ label, error, prefix, ...inputProps }: TextFieldProp
       <Text style={[typography.subhead, styles.label, { color: colors.textSecondary }]}>{label}</Text>
       <View style={[styles.inputRow, { borderColor, backgroundColor: colors.surfaceElevated }]}>
         {prefix ? (
-          <Text style={[typography.body, { color: colors.textSecondary, marginRight: spacing.xxs }]}>{prefix}</Text>
+          // 数字（TextInput）とメトリクスを揃えるため prefix も lineHeight を無効化する。
+          <Text style={[typography.body, styles.prefix, { color: colors.textSecondary, lineHeight: undefined }]}>
+            {prefix}
+          </Text>
         ) : null}
         <TextInput
           {...inputProps}
@@ -34,7 +37,11 @@ export function TextField({ label, error, prefix, ...inputProps }: TextFieldProp
             inputProps.onBlur?.(e);
           }}
           placeholderTextColor={colors.textPlaceholder}
-          style={[typography.body, styles.input, { color: colors.textPrimary }]}
+          // 縦位置ズレの根本原因対策:
+          // iOS の単一行 TextInput は lineHeight が指定されると文字が下寄せになるため、
+          // フォントサイズ/太さは typography.body を使いつつ lineHeight だけ無効化して縦中央にする
+          // （Android は styles.input の textAlignVertical / includeFontPadding で中央化）。
+          style={[typography.body, styles.input, { color: colors.textPrimary, lineHeight: undefined }]}
         />
       </View>
       {error ? <Text style={[typography.footnote, { color: colors.error }]}>{error}</Text> : null}
@@ -53,5 +60,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: spacing.sm,
   },
-  input: { flex: 1, paddingVertical: 0 },
+  // includeFontPadding=false（Android）で上下の余分な行間を除去し、中央化のブレを無くす。
+  prefix: { marginRight: spacing.xxs, includeFontPadding: false },
+  input: {
+    flex: 1,
+    paddingVertical: 0,
+    // Android の縦中央化。iOS では無視される（iOS は lineHeight 無効化で中央になる）。
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
 });
