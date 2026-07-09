@@ -53,5 +53,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: spacing.sm,
   },
-  input: { flex: 1, paddingVertical: spacing.xs },
+  input: { flex: 1, paddingVertical: 0 },
 });
