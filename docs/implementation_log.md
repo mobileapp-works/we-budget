@@ -1,13 +1,15 @@
 # 実装ログ（WeBudget）
 
-> 最終更新: 2026-07-09（0011 適用済み・**0012（関数権限強化）要適用**・レシートOCR品質強化）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+> 最終更新: 2026-07-09（0011・0012 適用済み・**0013（notify_partner の public 剥奪）要適用**・レシートOCR品質強化）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
 
 ## 2026-07-09 内部関数の EXECUTE 権限修正（migration 0012・**要適用**）
 
 - 0011 の適用確認を anon キー（REST /rpc/）で行った際に発見: **`revoke ... from public` では Supabase の関数保護にならない**。Supabase は関数作成時に anon / authenticated へ**個別に** EXECUTE を付与するため、0005・0011 の内部関数が実際には誰でも実行可能だった。
 - 実害の可能性（確認済み）: `notify_user` はユーザーUUIDを知っていれば**任意文言の通知（プッシュ含む）を他人に送れる**（ペア解除後の元パートナーはUUIDを知っている）／`send_variable_reminders` 等はリマインド日に連打で通知の重複送信が可能。
-- **`0012_function_execute_hardening.sql`（要 SQL Editor 実行）**: 内部専用6関数（notify_user / notify_partner / post_fixed_expenses / send_variable_reminders / send_settlement_reminders / check_budget_alerts）から anon・authenticated の EXECUTE を revoke。pg_cron（postgres実行）と SECURITY DEFINER 関数内からの呼び出し（定義者権限で権限チェック）には影響なし。
-- 適用後の確認SQL・REST確認は test_plan §7-1 に追記。**今後の教訓: 内部関数は `revoke ... from public` に加えて `from anon, authenticated` も必須。**
+- **`0012_function_execute_hardening.sql`（適用済み 2026-07-09）**: 内部専用6関数（notify_user / notify_partner / post_fixed_expenses / send_variable_reminders / send_settlement_reminders / check_budget_alerts）から anon・authenticated の EXECUTE を revoke。pg_cron（postgres実行）と SECURITY DEFINER 関数内からの呼び出し（定義者権限で権限チェック）には影響なし。
+- **`0013_revoke_notify_partner_public.sql`（要 SQL Editor 実行）**: 0012 適用後の REST 再確認で **notify_partner だけまだ anon から実行できた（204）**。原因＝notify_partner は 0002 以降一度も `revoke from public` されておらず、public の EXECUTE を anon が**継承**していた（0012 は anon/authenticated 直接付与しか外していない）。→ 6関数を **public / anon / authenticated すべてから** revoke（冪等）。
+- REST での確認結果（0012 適用後）: notify_user / post_fixed_expenses / send_variable_reminders / send_settlement_reminders / check_budget_alerts は **42501 permission denied** ✅・notify_partner のみ 204（→0013 で修正）・アプリ用 calculate_settlement_balance は 200 で無影響 ✅。
+- 適用後の確認SQL・REST確認は test_plan §7-1 に追記。**今後の教訓: 内部関数は必ず `revoke ... from public, anon, authenticated`（public だけ、または anon/authenticated だけ、では塞げない）。**
 
 ## 2026-07-09 レシートOCR品質強化（端末内OCRのまま精度を最大化・DB変更なし）
 
