@@ -41,4 +41,9 @@ describe('parseAmount', () => {
     expect(parseAmount('')).toBeNull();
     expect(parseAmount('abc')).toBeNull();
   });
+  it('全角数字を半角へ正規化して変換', () => {
+    expect(parseAmount('１２００')).toBe(1200);
+    expect(parseAmount('１２．５')).toBe(12.5);
+    expect(parseAmount('１，２００')).toBe(1200);
+  });
 });

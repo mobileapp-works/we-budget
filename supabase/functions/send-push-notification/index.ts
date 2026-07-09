@@ -20,7 +20,10 @@ const SETTING_COLUMN: Record<string, string> = {
   expense_deleted: 'expense_deleted',
   settlement: 'settlement',
   reminder_variable: 'reminder_variable',
-  budget_alert: 'budget_alert',
+  // 予算アラートは type が budget_warning / budget_exceeded で来る（budget_alert という type は無い）。
+  // どちらも notification_settings.budget_alert カラムでゲートする。
+  budget_warning: 'budget_alert',
+  budget_exceeded: 'budget_alert',
   settlement_reminder: 'settlement_reminder',
 };
 

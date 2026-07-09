@@ -12,7 +12,8 @@ export function isValidPassword(password: string): boolean {
 
 /** 金額文字列を数値に変換する。不正なら null。 */
 export function parseAmount(input: string): number | null {
-  const normalized = input.replace(/[,\s]/g, '');
+  // 全角数字・全角記号（１２３．，）を半角へ正規化してからパースする。
+  const normalized = input.normalize('NFKC').replace(/[,\s]/g, '');
   if (normalized === '') return null;
   const value = Number(normalized);
   if (!Number.isFinite(value) || value <= 0) return null;

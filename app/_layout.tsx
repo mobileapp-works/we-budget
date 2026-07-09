@@ -9,6 +9,7 @@ import { AppProviders } from '@/providers/AppProviders';
 import { ErrorBoundary } from '@/components';
 import { useSession, usePushRegistration, useAppStateSync } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
+import { usePreferencesStore } from '@/store/preferencesStore';
 import '@/lib/i18n'; // i18n の初期化（副作用）
 
 function RootNavigator() {
@@ -16,11 +17,21 @@ function RootNavigator() {
   const segments = useSegments();
   const router = useRouter();
   const { colors } = useTheme();
+  const aiConsentLocal = usePreferencesStore((s) => s.aiConsent);
+  const setAiConsent = usePreferencesStore((s) => s.setAiConsent);
 
   // ログイン時にプッシュ通知トークンを登録し、通知タップの遷移を有効化する。
   usePushRegistration();
   // フォアグラウンド復帰時にセッション・通知・ペア申請を同期する（パートナー側の変更に追従）。
   useAppStateSync();
+
+  // AI同意はサーバ（profiles.ai_consent）が正。別端末/再インストールで同意済みなら
+  // ローカルストアへ引き上げて再同意を求めない（アップグレードのみ・ローカルの取り消しはしない）。
+  useEffect(() => {
+    if (session?.profile.aiConsent && !aiConsentLocal) {
+      setAiConsent(true);
+    }
+  }, [session, aiConsentLocal, setAiConsent]);
 
   // セッション状態に応じてリダイレクト（未ログイン→認証 / ログイン済み→メイン）
   useEffect(() => {
