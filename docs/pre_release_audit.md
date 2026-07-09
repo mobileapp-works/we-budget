@@ -19,8 +19,10 @@
 | **I-5** | ログイン時に `profile.ai_consent` をローカルへ引き上げ | `app/_layout.tsx` | なし |
 | **A-2** | SKAdNetwork 識別子を1件→46件に拡充 | `app.json` | 次ビルドで反映 |
 | **A-5** | 不要な Android `RECORD_AUDIO` 権限を削除 | `app.json` | 次ビルドで反映 |
+| **A-1** | Privacy Manifest に定番3種（File timestamp/System boot time/Disk space）を先回り宣言 | `app.json` | ビルド後に集約manifestを目視確認 |
+| **I-2** | プライバシーポリシーから未実装の「Sentry」記述を削除（監視はMVP見送り） | `docs/privacy-policy.html` | GitHub Pages は push で更新 |
 
-**残（外部作業・仕様判断が必要）**: A-1 / A-6 / A-7 / A-8 / A-9（Apple・AdMob 管理画面・実機）、I-1 / I-2 / I-3（ドキュメント/スコープ判断）、B-2（サーバ側フラグ化が本筋のため見送り）。
+**残（外部作業・仕様判断が必要）**: A-6 / A-7 / A-8 / A-9（Apple・AdMob 管理画面・実機）、A-1の最終確認（ビルド後 `.xcprivacy` 目視）、I-1 / I-3（ドキュメント/多言語化）、B-2（サーバ側フラグ化が本筋のため見送り）。
 
 ## 0. サマリー（結論）
 
@@ -56,10 +58,10 @@
 
 ## 2. Apple App Store 審査レディネス
 
-### A-1【High / 要確認】Privacy Manifest（`app.json`）の宣言が UserDefaults(CA92.1) のみ
-- **根拠**: `app.json:25-34`（`NSPrivacyAccessedAPITypes` に CA92.1 のみ）。
-- **内容**: RN/Expo 本体・AsyncStorage・各種SDKは Required Reason API（File timestamp `C617.1`、System boot time `35F9.1`、Disk space `E174.1` 等）を使うことがある。宣言漏れがあると Apple から **ITMS-91053 (Missing API declaration)** の警告メール → 審査遅延/リジェクトの一因。
-- **推奨対応**: Expo SDK54 は prebuild 時に各モジュールの `.xcprivacy` を集約生成する。**EAS ビルド後の `PrivacyInfo.xcprivacy`（またはビルドログ）で C617.1/35F9.1/E174.1 の網羅を確認**。不足分は `app.json` の `privacyManifests` に追記。サードSDK（Google Mobile Ads / Google Sign-In / Supabase）は自前 manifest を同梱するが要目視。
+### A-1【High】【一部修正済 / 要確認】Privacy Manifest（`app.json`）の宣言が UserDefaults(CA92.1) のみ
+- **修正**: `app.json` の `privacyManifests` に RN/Expo が使う定番3種を先回り宣言 — File timestamp(`C617.1`) / System boot time(`35F9.1`) / Disk space(`E174.1`)。ITMS-91053 リスクを低減。
+- **残（要確認）**: サードSDK（Google Mobile Ads / Google Sign-In / Supabase）は自前 `.xcprivacy` を同梱するため、**EAS ビルド後の集約 `PrivacyInfo.xcprivacy`（またはビルドログ）で最終的な網羅を目視確認**すること（reason コードの過不足含む）。
+- **根拠**: `app.json`（旧: `NSPrivacyAccessedAPITypes` に CA92.1 のみ）。
 
 ### A-7【High / 要確認】App Store Connect のプライバシー表示（Nutrition Label）と実装の整合
 - **根拠**: 実装＝OCRは端末内（`src/lib/ocr.ts`）で外部送信なし。広告＝AdMob（IDFA/トラッキング）。バックエンド＝Supabase（メール・プロフィール・支出）。
@@ -107,9 +109,10 @@
 - **評価**: アプリ挙動・同意文言（`aiConsent.body`＝「端末内で処理・外部送信しない」）は**正直で問題なし**。むしろプライバシー的に良い。ドキュメントのみ未更新。
 - **推奨対応**: requirements/design の OCR 記述を「端末内 ML Kit・外部送信なし」に更新。要件#15「外部AI利用同意」は実態に合わせ「端末内OCRの説明画面」と読み替え。
 
-### I-2【Low】Sentry が未導入（要件・設計に記載あり）
-- **根拠**: `docs/design.md §10`・`requirements.md` に Sentry。`package.json` に `@sentry/*` **無し**。`src/components/ErrorBoundary.tsx:25` は `// TODO(Phase4): Sentry.captureException` のみ。
-- **推奨対応**: MVPで見送るなら要件/設計を「監視は v1.1」に更新。導入するなら `@sentry/react-native` 追加＋ErrorBoundary/グローバルハンドラ配線。
+### I-2【Low】【一部修正済】Sentry が未導入（要件・設計・プライバシーポリシーに記載あり）
+- **修正**: ユーザー判断により **MVPは監視なしで提出**する方針。実態と食い違っていた **プライバシーポリシーの「エラー監視: Sentry / Error monitoring: Sentry」記述を削除**（`docs/privacy-policy.html` ja/en 両方）。掲載ポリシー（GitHub Pages）は push で更新される。
+- **残**: `docs/design.md §10`・`requirements.md` の Sentry 記述は「監視は v1.1」に更新するのが望ましい（仕様ドキュメントのため今回は保留）。導入する場合は `@sentry/react-native` 追加＋ErrorBoundary/グローバルハンドラ配線。
+- **根拠**: `package.json` に `@sentry/*` 無し。`src/components/ErrorBoundary.tsx:25` は TODO のみ。
 
 ### I-3【Low】サーバ生成通知が日本語固定（英語ユーザーにも日本語）
 - **根拠**: `0005/0009/0010/0011` の通知文言がSQL内日本語固定（例 `0011:117` 「予算の80%に達しました」）。英語ユーザーのプッシュ/アプリ内通知が日本語になる。マイグレーションのコメントも「多言語化は H-12 で別途」と既知。
