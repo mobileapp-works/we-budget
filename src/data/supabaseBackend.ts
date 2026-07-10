@@ -454,7 +454,8 @@ export const supabaseBackend: Backend = {
       .from('shared_account')
       .insert({
         pair_id: pairId,
-        user_id: userId,
+        // 入金者の指定があればそれを、なければ記録者本人。null は共同(調整)。
+        user_id: input.userId !== undefined ? input.userId : userId,
         type: input.type,
         amount: input.amount,
         currency: input.currency,

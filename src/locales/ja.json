@@ -173,14 +173,22 @@
     "balance": "残高",
     "deposit": "入金",
     "depositButton": "入金を記録",
+    "depositBy": "{{name}}の入金",
+    "depositBreakdown": "入金の内訳",
+    "withdraw": "出金",
+    "withdrawButton": "出金・調整",
+    "adjustment": "調整",
+    "spent": "共同口座から支出",
     "totalDeposits": "入金合計",
     "totalSpent": "支出合計",
     "transactions": "明細",
     "amount": "金額",
     "memo": "メモ",
+    "date": "日付",
+    "saved": "記録しました",
     "emptyTitle": "入金を記録しましょう",
     "emptyBody": "共同口座への入金額を記録すると、残高が見えるようになります。",
-    "note": "共同口座での買い物は支出入力で「共同口座」を選んで記録します。"
+    "note": "共同口座での買い物は支出入力で「共同口座」を選ぶと、この明細に表示されます。残高が合わないときは出金・調整で補正できます。"
   },
   "fixedCosts": {
     "title": "固定費",

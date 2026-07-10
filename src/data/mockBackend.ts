@@ -632,11 +632,13 @@ export const mockBackend: Backend = {
 
   async addSharedEntry(input: SharedEntryInput) {
     await delay();
+    const { userId, ...rest } = input;
     const entry: SharedAccountEntry = {
       id: uid('sa'),
       pairId: state.pair.id,
-      userId: state.currentUserId,
-      ...input,
+      // 入金者の指定があればそれを、なければ記録者本人を当事者にする。null は共同(調整)。
+      userId: userId !== undefined ? userId : state.currentUserId,
+      ...rest,
     };
     state.shared.push(entry);
     return { ...entry };

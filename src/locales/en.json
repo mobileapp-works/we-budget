@@ -173,14 +173,22 @@
     "balance": "Balance",
     "deposit": "Deposit",
     "depositButton": "Record deposit",
+    "depositBy": "Deposit by {{name}}",
+    "depositBreakdown": "Deposit breakdown",
+    "withdraw": "Withdraw",
+    "withdrawButton": "Withdraw / adjust",
+    "adjustment": "Adjustment",
+    "spent": "Paid from shared account",
     "totalDeposits": "Total deposits",
     "totalSpent": "Total spent",
     "transactions": "Transactions",
     "amount": "Amount",
     "memo": "Memo",
+    "date": "Date",
+    "saved": "Saved",
     "emptyTitle": "Record a deposit",
     "emptyBody": "Track deposits to see the shared balance.",
-    "note": "Record shared-account purchases via expense entry by selecting \"Shared account\"."
+    "note": "Purchases paid from the shared account (select \"Shared account\" on the expense form) appear here. Use Withdraw / adjust to correct the balance."
   },
   "fixedCosts": {
     "title": "Fixed costs",

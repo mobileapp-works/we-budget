@@ -9,10 +9,15 @@ import { buildRateMap, convertAmount, roundMoney, type RateMap } from './money';
 
 const BASE_CURRENCY = 'JPY';
 
+/** 当事者が紐づかない入金/出金（残高調整）のキー。userId は UUID なので衝突しない。 */
+export const SHARED_NO_USER = '__none__';
+
 export interface SharedBalanceResult {
   balance: number;
   totalDeposits: number;
   totalSpent: number; // withdrawal + 共同口座払い支出
+  /** 入金者ごとの入金合計（BASE_CURRENCY換算）。userId が null の分は SHARED_NO_USER に集約。 */
+  depositsByUser: Record<string, number>;
   unconvertedCurrencies: string[];
 }
 
@@ -26,6 +31,7 @@ export function calculateSharedBalance(
 
   let deposits = 0;
   let withdrawals = 0;
+  const depositsByUserRaw: Record<string, number> = {};
 
   for (const entry of entries) {
     const converted = convertAmount(entry.amount, entry.currency, BASE_CURRENCY, rateMap);
@@ -33,8 +39,18 @@ export function calculateSharedBalance(
       unconverted.add(entry.currency);
       continue;
     }
-    if (entry.type === 'deposit') deposits += converted;
-    else withdrawals += converted;
+    if (entry.type === 'deposit') {
+      deposits += converted;
+      const key = entry.userId ?? SHARED_NO_USER;
+      depositsByUserRaw[key] = (depositsByUserRaw[key] ?? 0) + converted;
+    } else {
+      withdrawals += converted;
+    }
+  }
+
+  const depositsByUser: Record<string, number> = {};
+  for (const [key, value] of Object.entries(depositsByUserRaw)) {
+    depositsByUser[key] = roundMoney(value, BASE_CURRENCY);
   }
 
   let sharedSpent = 0;
@@ -56,6 +72,7 @@ export function calculateSharedBalance(
     balance,
     totalDeposits,
     totalSpent,
+    depositsByUser,
     unconvertedCurrencies: [...unconverted],
   };
 }

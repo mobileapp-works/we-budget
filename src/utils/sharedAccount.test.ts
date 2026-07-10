@@ -1,4 +1,4 @@
-import { calculateSharedBalance } from './sharedAccount';
+import { calculateSharedBalance, SHARED_NO_USER } from './sharedAccount';
 import { makeExpense, makeSharedEntry, makeRate } from '@/test-utils/factories';
 
 describe('calculateSharedBalance', () => {
@@ -48,5 +48,46 @@ describe('calculateSharedBalance', () => {
     const rates = [makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })];
     const result = calculateSharedBalance(entries, sharedExpenses, rates);
     expect(result.balance).toBe(12000);
+  });
+
+  it('入金を入金者ごとに集計する', () => {
+    const entries = [
+      makeSharedEntry({ type: 'deposit', userId: 'user-1', amount: 30000 }),
+      makeSharedEntry({ type: 'deposit', userId: 'user-1', amount: 10000 }),
+      makeSharedEntry({ type: 'deposit', userId: 'user-2', amount: 50000 }),
+    ];
+    const result = calculateSharedBalance(entries, []);
+    expect(result.depositsByUser['user-1']).toBe(40000);
+    expect(result.depositsByUser['user-2']).toBe(50000);
+    expect(result.totalDeposits).toBe(90000);
+  });
+
+  it('当事者なし(調整)の入金は SHARED_NO_USER に集約する', () => {
+    const entries = [
+      makeSharedEntry({ type: 'deposit', userId: null, amount: 5000 }),
+      makeSharedEntry({ type: 'deposit', userId: 'user-1', amount: 10000 }),
+    ];
+    const result = calculateSharedBalance(entries, []);
+    expect(result.depositsByUser[SHARED_NO_USER]).toBe(5000);
+    expect(result.depositsByUser['user-1']).toBe(10000);
+  });
+
+  it('出金は入金内訳に含めない', () => {
+    const entries = [
+      makeSharedEntry({ type: 'deposit', userId: 'user-1', amount: 10000 }),
+      makeSharedEntry({ type: 'withdrawal', userId: 'user-1', amount: 3000 }),
+    ];
+    const result = calculateSharedBalance(entries, []);
+    expect(result.depositsByUser['user-1']).toBe(10000);
+    expect(result.balance).toBe(7000);
+  });
+
+  it('外貨入金の内訳も換算して集計する', () => {
+    const entries = [
+      makeSharedEntry({ type: 'deposit', userId: 'user-2', amount: 100, currency: 'USD' }), // 15000円
+    ];
+    const rates = [makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })];
+    const result = calculateSharedBalance(entries, [], rates);
+    expect(result.depositsByUser['user-2']).toBe(15000);
   });
 });

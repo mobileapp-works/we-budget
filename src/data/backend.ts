@@ -62,6 +62,8 @@ export interface SharedEntryInput {
   currency: string;
   description: string | null;
   transactionDate: string;
+  /** 入金/出金の当事者。未指定なら記録者本人。共同(誰の分でもない)調整は null。 */
+  userId?: UUID | null;
 }
 
 export interface BudgetInput {
