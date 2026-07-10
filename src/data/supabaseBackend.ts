@@ -111,7 +111,13 @@ export const supabaseBackend: Backend = {
 
   async signUp(email, password, displayName) {
     const sb = requireSupabase();
-    const { error } = await sb.auth.signUp({ email, password, options: { data: { display_name: displayName } } });
+    // emailRedirectTo が無いと確認メールのリンクが Site URL（デフォルト localhost）へ飛ぶ。
+    // ダッシュボードの Redirect URLs 許可リストへの登録が必要（SUPABASE_SETUP.md §7）。
+    const { error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName }, emailRedirectTo: 'webudget://login' },
+    });
     if (error) throw error;
   },
 

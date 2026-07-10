@@ -34,6 +34,18 @@ export function authErrorKey(e: unknown): string {
   if (code === 'weak_password' || msg.includes('password should be at least') || msg.includes('weak password')) {
     return 'error.weakPassword';
   }
+  // 現在のパスワードと同じ（パスワード再設定時）
+  if (code === 'same_password' || msg.includes('should be different from the old password')) {
+    return 'error.samePassword';
+  }
+  // セッション欠落（リカバリーセッションの期限切れ等）
+  if (
+    code === 'session_missing' ||
+    (e as { name?: unknown })?.name === 'AuthSessionMissingError' ||
+    msg.includes('auth session missing')
+  ) {
+    return 'error.sessionExpired';
+  }
   // レート制限
   if (code.includes('rate_limit') || msg.includes('rate limit') || msg.includes('too many requests')) {
     return 'error.rateLimit';

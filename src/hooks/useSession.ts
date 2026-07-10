@@ -70,6 +70,7 @@ export function useAuthActions() {
     mutationFn: ({ accessToken, refreshToken }: { accessToken: string; refreshToken: string }) =>
       backend.recoverSession(accessToken, refreshToken),
     onSuccess: () => {
+      qc.clear(); // 直前に別ユーザーでログインしていた場合にキャッシュが残らないようにする
       qc.invalidateQueries({ queryKey: queryKeys.session });
     },
   });

@@ -464,7 +464,11 @@ insert into storage.buckets (id, name, public) values ('category-icons','categor
 ## 7. Auth プロバイダ
 
 - **Email**: 有効化。Confirm email を ON（メール確認フロー）。
-- パスワードリセット / メール確認のリダイレクトに `webudget://` を許可リストへ追加。
+- **URL Configuration（必須）**: Authentication → URL Configuration で以下を設定する。**未設定だとメールのリンクが `http://localhost:3000` に飛ぶ**。
+  - **Redirect URLs** に `webudget://**` を追加（個別登録なら `webudget://reset-password` と `webudget://login` の2つ）。
+    - ⚠️ 許可リストは**完全一致 or ワイルドカード**。`webudget://` だけを登録しても `webudget://reset-password` には一致せず、Site URL（デフォルト `http://localhost:3000`）へフォールバックする。
+  - **Site URL** も `webudget://login` に変更する（許可リスト不一致時のフォールバック先・メールテンプレートの `{{ .SiteURL }}` の値）。
+  - クライアント側の指定: パスワードリセット＝`redirectTo: 'webudget://reset-password'`（[supabaseBackend.ts](../src/data/supabaseBackend.ts) `sendPasswordReset`）／サインアップ確認＝`emailRedirectTo: 'webudget://login'`（同 `signUp`）。
 
 ### 7.1 Apple / Google ログイン（ネイティブ・`signInWithIdToken` 方式）
 

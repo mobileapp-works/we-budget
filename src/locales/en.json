@@ -316,6 +316,8 @@
     "emailNotConfirmed": "Your email isn't confirmed yet. Please open the link in the confirmation email.",
     "emailTaken": "This email is already registered.",
     "rateLimit": "Too many requests. Please try again later.",
+    "samePassword": "New password must be different from your current one.",
+    "sessionExpired": "Your session has expired. Please start over.",
     "generic": "Something went wrong. Please try again.",
     "required": "This field is required",
     "invalidEmail": "Invalid email format",

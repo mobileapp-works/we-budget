@@ -15,6 +15,7 @@ import { useAuthActions } from '@/hooks';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
 import { isValidEmail, isValidPassword } from '@/utils';
+import { authErrorKey } from '@/lib/authErrors';
 
 /** ディープリンクURLのクエリ・フラグメント両方からパラメータを集める。 */
 function parseAuthParams(url: string): Record<string, string> {
@@ -47,7 +48,15 @@ export default function ResetPasswordScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  // リンクが無効/期限切れだったとき、トーストが消えても分かるように request モードに常時表示する。
+  const [linkInvalid, setLinkInvalid] = useState(false);
   const handledUrl = useRef<string | null>(null);
+
+  // 'error.auth' は資格情報向けの文言でこの画面の文脈に合わないため汎用文言に差し替える。
+  const showAuthError = (e: unknown) => {
+    const key = authErrorKey(e);
+    toast.show(t(key === 'error.auth' ? 'error.generic' : key), 'error');
+  };
 
   // リカバリーリンクで開かれたらトークンからセッションを確立し、新パスワード入力へ切り替える。
   useEffect(() => {
@@ -55,7 +64,8 @@ export default function ResetPasswordScreen() {
     handledUrl.current = url;
     const params = parseAuthParams(url);
     if (params.error_description || params.error) {
-      // 期限切れ・使用済みリンク等
+      // 期限切れ・使用済みリンク等（Supabase が error パラメータ付きでリダイレクトしてくる）
+      setLinkInvalid(true);
       toast.show(t('auth.resetLinkInvalid'), 'error');
       return;
     }
@@ -63,8 +73,19 @@ export default function ResetPasswordScreen() {
       recoverSession.mutate(
         { accessToken: params.access_token, refreshToken: params.refresh_token },
         {
-          onSuccess: () => setMode('update'),
-          onError: () => toast.show(t('auth.resetLinkInvalid'), 'error'),
+          onSuccess: () => {
+            setLinkInvalid(false);
+            setMode('update');
+          },
+          onError: (e) => {
+            // 通信エラーはリンク自体の問題ではないので区別する（再送を促さない）。
+            if (authErrorKey(e) === 'error.network') {
+              toast.show(t('error.network'), 'error');
+              return;
+            }
+            setLinkInvalid(true);
+            toast.show(t('auth.resetLinkInvalid'), 'error');
+          },
         }
       );
     }
@@ -82,7 +103,7 @@ export default function ResetPasswordScreen() {
         toast.show(t('auth.resetEmailSent'), 'success');
         router.back();
       },
-      onError: () => toast.show(t('error.generic'), 'error'),
+      onError: showAuthError,
     });
   };
 
@@ -108,7 +129,17 @@ export default function ResetPasswordScreen() {
         // リカバリーセッションでログイン済みのため、そのままメインへ。
         router.replace('/(tabs)');
       },
-      onError: () => toast.show(t('error.generic'), 'error'),
+      onError: (e) => {
+        const key = authErrorKey(e);
+        if (key === 'error.sessionExpired') {
+          // リカバリーセッションが切れている＝リンクからやり直すしかないので、再送フォームへ戻す。
+          setLinkInvalid(true);
+          setMode('request');
+          toast.show(t('auth.resetLinkInvalid'), 'error');
+          return;
+        }
+        showAuthError(e);
+      },
     });
   };
 
@@ -119,6 +150,14 @@ export default function ResetPasswordScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {mode === 'request' ? (
             <>
+              {linkInvalid && (
+                <Text
+                  accessibilityRole="alert"
+                  style={[typography.body, styles.body, { color: colors.error }]}
+                >
+                  ⚠ {t('auth.resetLinkInvalid')}
+                </Text>
+              )}
               <Text style={[typography.body, styles.body, { color: colors.textSecondary }]}>
                 {t('auth.resetPasswordBody')}
               </Text>
