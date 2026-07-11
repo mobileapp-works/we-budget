@@ -22,7 +22,7 @@ export default function ExpenseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const expenseQuery = useExpense(id);
-  const { deleteExpense } = useExpenseActions();
+  const { deleteExpense, updateExpense } = useExpenseActions();
   const { getCategory, getCategoryName, getPayerLabel } = useExpenseHelpers();
   const resolveName = useCategoryName();
 
@@ -56,6 +56,46 @@ export default function ExpenseDetailScreen() {
             },
             onError: () => toast.show(t('error.generic'), 'error'),
           }),
+      },
+    ]);
+  };
+
+  // 個別精算の対象は「未精算の個人立替」のみ（共同口座払い・精算済みは対象外）。
+  const canSettleFromShared =
+    !!expense && !isSettled && !expense.isSharedPayment && expense.payerUserId !== null;
+
+  // この立替を共同口座払いに切り替える＝立替者へ共同口座から払い戻し、貸し借りから外す。
+  const confirmSettleFromShared = () => {
+    if (!expense) return;
+    const amount = formatCurrency(expense.amount, expense.currency, locale);
+    Alert.alert(t('expense.settleFromSharedConfirmTitle'), t('expense.settleFromSharedConfirmBody', { amount }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('expense.settleFromShared'),
+        onPress: () =>
+          updateExpense.mutate(
+            {
+              id: expense.id,
+              expectedUpdatedAt: expense.updatedAt,
+              input: {
+                categoryId: expense.categoryId,
+                amount: expense.amount,
+                currency: expense.currency,
+                exchangeRate: expense.exchangeRate,
+                baseAmount: expense.baseAmount,
+                payerUserId: null,
+                isSharedPayment: true,
+                expenseDate: expense.expenseDate,
+                description: expense.description,
+                storeName: expense.storeName,
+                receiptImageUrl: expense.receiptImageUrl,
+              },
+            },
+            {
+              onSuccess: () => toast.show(t('expense.settledFromShared'), 'success'),
+              onError: () => toast.show(t('error.generic'), 'error'),
+            }
+          ),
       },
     ]);
   };
@@ -104,6 +144,19 @@ export default function ExpenseDetailScreen() {
             ) : null}
 
             <View style={styles.actions}>
+              {canSettleFromShared ? (
+                <>
+                  <Button
+                    title={t('expense.settleFromShared')}
+                    left={<Ionicons name="wallet-outline" size={18} color={colors.primaryText} />}
+                    onPress={confirmSettleFromShared}
+                    loading={updateExpense.isPending}
+                  />
+                  <Text style={[typography.footnote, styles.settleHint, { color: colors.textPlaceholder }]}>
+                    {t('expense.settleFromSharedHint')}
+                  </Text>
+                </>
+              ) : null}
               <Button title={t('common.edit')} onPress={() => router.push(`/expense-input?id=${expense.id}`)} />
               <View style={{ height: spacing.sm }} />
               <Button title={t('common.delete')} variant="destructive" onPress={confirmDelete} loading={deleteExpense.isPending} />
@@ -133,4 +186,5 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.sm },
   receipt: { width: '100%', height: 200, borderRadius: radius.md, resizeMode: 'cover' },
   actions: { marginTop: spacing.xs },
+  settleHint: { marginTop: spacing.xs, marginBottom: spacing.sm, textAlign: 'center' },
 });
