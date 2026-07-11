@@ -3,11 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, TextField, ProgressBar, StateView, CategoryIcon, useCategoryName } from '@/components';
-import { useBudgets, useBudgetActions, useExpenses, useCategories, useExchangeRates, useLocale } from '@/hooks';
+import { useBudgets, useBudgetActions, useExpenses, useCategories, useLocale, useRequireSession } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
-import { buildRateMap, convertAmount, calculateBudgetUsage, formatCurrency, getMonthKey, parseAmount } from '@/utils';
+import { calculateBudgetUsage, formatCurrency, getMonthKey, parseAmount } from '@/utils';
 import type { Category, UUID } from '@/types/models';
 
 interface EditTarget {
@@ -22,32 +22,30 @@ export default function BudgetScreen() {
   const locale = useLocale();
   const toast = useToast();
   const resolveName = useCategoryName();
+  const session = useRequireSession();
+  const baseCurrency = session.pair.baseCurrency;
 
   const budgetsQuery = useBudgets();
   const { upsertBudget } = useBudgetActions();
   const { data: expenses } = useExpenses(getMonthKey());
   const { data: categories } = useCategories();
-  const { data: rates } = useExchangeRates();
 
   const [edit, setEdit] = useState<EditTarget | null>(null);
   const [amountInput, setAmountInput] = useState('');
 
-  // カテゴリ別の当月使用額（JPY換算）
+  // カテゴリ別の当月使用額（基準通貨換算済みの baseAmount を合計）
   const usageByCategory = useMemo(() => {
-    const rateMap = buildRateMap(rates ?? []);
     const map = new Map<string, number>();
     let total = 0;
     for (const e of expenses ?? []) {
-      const v = convertAmount(e.amount, e.currency, 'JPY', rateMap);
-      if (v === null) continue;
-      map.set(e.categoryId, (map.get(e.categoryId) ?? 0) + v);
-      total += v;
+      map.set(e.categoryId, (map.get(e.categoryId) ?? 0) + e.baseAmount);
+      total += e.baseAmount;
     }
     return { map, total };
-  }, [expenses, rates]);
+  }, [expenses]);
 
   const overall = budgetsQuery.data?.find((b) => b.categoryId === null);
-  const overallUsage = calculateBudgetUsage(expenses ?? [], overall?.amount ?? 0, rates ?? []);
+  const overallUsage = calculateBudgetUsage(expenses ?? [], overall?.amount ?? 0, baseCurrency);
 
   const openEditor = (target: EditTarget) => {
     setEdit(target);
@@ -62,7 +60,7 @@ export default function BudgetScreen() {
       return;
     }
     upsertBudget.mutate(
-      { categoryId: edit.categoryId, amount: parsed, currency: 'JPY' },
+      { categoryId: edit.categoryId, amount: parsed, currency: baseCurrency },
       {
         onSuccess: () => {
           toast.show(t('expense.saved'), 'success');
@@ -93,6 +91,7 @@ export default function BudgetScreen() {
                 percent={overallUsage.percent}
                 status={overallUsage.status}
                 locale={locale}
+                currency={baseCurrency}
               />
             ) : (
               <Text style={[typography.body, { color: colors.primary }]}>{t('budget.setBudget')}</Text>
@@ -124,7 +123,7 @@ export default function BudgetScreen() {
                       <Text style={[typography.body, { color: colors.textPrimary }]}>{resolveName(c)}</Text>
                       <Text style={[typography.footnote, { color: colors.textSecondary }]}>
                         {budgetedCategoryIds.has(c.id)
-                          ? `${formatCurrency(used, 'JPY', locale)} / ${formatCurrency(limit, 'JPY', locale)}`
+                          ? `${formatCurrency(used, baseCurrency, locale)} / ${formatCurrency(limit, baseCurrency, locale)}`
                           : t('budget.setBudget')}
                       </Text>
                     </View>
@@ -149,7 +148,7 @@ export default function BudgetScreen() {
               value={amountInput}
               onChangeText={setAmountInput}
               keyboardType="numeric"
-              prefix="￥"
+              prefix={baseCurrency === 'JPY' ? '￥' : baseCurrency}
               autoFocus
             />
             <Button title={t('common.save')} onPress={handleSave} loading={upsertBudget.isPending} />
@@ -167,6 +166,7 @@ function BudgetBar({
   percent,
   status,
   locale,
+  currency,
 }: {
   label: string;
   used: number;
@@ -174,13 +174,14 @@ function BudgetBar({
   percent: number;
   status: 'safe' | 'warning' | 'exceeded';
   locale: string;
+  currency: string;
 }) {
   const { colors } = useTheme();
   return (
     <View>
       <ProgressBar percent={percent} status={status} />
       <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: spacing.xs }]}>
-        {formatCurrency(used, 'JPY', locale)} / {formatCurrency(limit, 'JPY', locale)}（{Math.round(percent)}%）
+        {formatCurrency(used, currency, locale)} / {formatCurrency(limit, currency, locale)}（{Math.round(percent)}%）
       </Text>
     </View>
   );

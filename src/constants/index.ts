@@ -6,7 +6,6 @@ export * from './categories';
 
 /** アプリ全体で使う定数 */
 export const APP_CONFIG = {
-  defaultCurrency: 'JPY',
   /** 招待コードの桁数 */
   inviteCodeLength: 8,
   /** レシート画像の最大幅（アップロード前に圧縮） */

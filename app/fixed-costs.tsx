@@ -18,6 +18,7 @@ export default function FixedCostsScreen() {
   const locale = useLocale();
   const toast = useToast();
   const session = useRequireSession();
+  const baseCurrency = session.pair.baseCurrency;
   const resolveName = useCategoryName();
 
   const fixedCostsQuery = useFixedCosts();
@@ -54,7 +55,7 @@ export default function FixedCostsScreen() {
       name: name.trim(),
       type,
       amount: type === 'fixed' ? parseAmount(amount) : null,
-      currency: 'JPY',
+      currency: baseCurrency,
       payerUserId: session.userId,
       isSharedPayment: false,
       billingDay,
@@ -176,7 +177,7 @@ export default function FixedCostsScreen() {
                 </Text>
               </View>
               {type === 'fixed' ? (
-                <TextField label={t('fixedCosts.amount')} value={amount} onChangeText={setAmount} keyboardType="numeric" prefix="￥" />
+                <TextField label={t('fixedCosts.amount')} value={amount} onChangeText={setAmount} keyboardType="numeric" prefix={baseCurrency === 'JPY' ? '￥' : baseCurrency} />
               ) : null}
               <DayPickerField
                 label={type === 'fixed' ? t('fixedCosts.billingDay') : t('fixedCosts.reminderDay')}

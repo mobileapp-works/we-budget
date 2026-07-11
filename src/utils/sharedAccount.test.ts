@@ -1,5 +1,5 @@
 import { calculateSharedBalance, SHARED_NO_USER } from './sharedAccount';
-import { makeExpense, makeSharedEntry, makeRate } from '@/test-utils/factories';
+import { makeExpense, makeSharedEntry } from '@/test-utils/factories';
 
 describe('calculateSharedBalance', () => {
   it('入金のみなら残高=入金合計', () => {
@@ -40,13 +40,12 @@ describe('calculateSharedBalance', () => {
     expect(result.balance).toBe(10000);
   });
 
-  it('外貨の入金/支出を換算する', () => {
-    const entries = [makeSharedEntry({ type: 'deposit', amount: 100, currency: 'USD' })]; // 15000円
+  it('共同口座払いの外貨支出は baseAmount で残高から引く', () => {
+    const entries = [makeSharedEntry({ type: 'deposit', amount: 15000 })]; // 基準通貨で入金
     const sharedExpenses = [
-      makeExpense({ isSharedPayment: true, payerUserId: null, amount: 20, currency: 'USD' }), // 3000円
+      makeExpense({ isSharedPayment: true, payerUserId: null, amount: 20, currency: 'USD', baseAmount: 3000 }),
     ];
-    const rates = [makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })];
-    const result = calculateSharedBalance(entries, sharedExpenses, rates);
+    const result = calculateSharedBalance(entries, sharedExpenses);
     expect(result.balance).toBe(12000);
   });
 
@@ -82,12 +81,11 @@ describe('calculateSharedBalance', () => {
     expect(result.balance).toBe(7000);
   });
 
-  it('外貨入金の内訳も換算して集計する', () => {
+  it('基準通貨が USD のとき USD 額で内訳を集計する', () => {
     const entries = [
-      makeSharedEntry({ type: 'deposit', userId: 'user-2', amount: 100, currency: 'USD' }), // 15000円
+      makeSharedEntry({ type: 'deposit', userId: 'user-2', amount: 100, currency: 'USD' }),
     ];
-    const rates = [makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })];
-    const result = calculateSharedBalance(entries, [], rates);
-    expect(result.depositsByUser['user-2']).toBe(15000);
+    const result = calculateSharedBalance(entries, [], 'USD');
+    expect(result.depositsByUser['user-2']).toBe(100);
   });
 });

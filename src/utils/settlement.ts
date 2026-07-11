@@ -2,11 +2,14 @@
  * 立替精算の計算ロジック（純粋関数）。
  * design.md の RPC `calculate_settlement_balance` のクライアント版。
  * 表示用にこの関数で残高を見せ、実際の精算確定はサーバーRPCで再計算する。
+ *
+ * 多通貨: 各支出は記録時に基準通貨へ換算した baseAmount を持つ。集計はこの
+ * baseAmount を合計するだけでよい（旧: exchange_rates でその都度換算していた）。
  */
-import type { Expense, Pair, ExchangeRate, SettlementBalance } from '@/types/models';
-import { buildRateMap, convertAmount, roundMoney, type RateMap } from './money';
+import type { Expense, Pair, SettlementBalance } from '@/types/models';
+import { roundMoney } from './money';
 
-const BASE_CURRENCY = 'JPY';
+const DEFAULT_BASE_CURRENCY = 'JPY';
 
 /** 未精算・個人払い・ペアのどちらかが支払者の支出か（精算の集計候補）。 */
 function isUnsettledPersonalPayment(
@@ -21,18 +24,13 @@ function isUnsettledPersonalPayment(
 /**
  * 支出が「今回の精算で確定（settlement_id スタンプ）してよい」対象かを判定する。
  * calculateSettlementBalance の集計対象と完全に同一条件であること。
- * レート未設定で JPY へ換算できない支出は精算額に含まれないため、
- * スタンプしてしまうと立替が請求できないまま消える（レート設定後の次回精算に残す）。
+ * 全支出が baseAmount を持つため、集計対象＝スタンプ対象で齟齬は生じない。
  */
 export function isSettleableExpense(
   e: Expense,
-  pair: Pick<Pair, 'user1Id' | 'user2Id'>,
-  rateMap: RateMap
+  pair: Pick<Pair, 'user1Id' | 'user2Id'>
 ): boolean {
-  return (
-    isUnsettledPersonalPayment(e, pair) &&
-    convertAmount(e.amount, e.currency, BASE_CURRENCY, rateMap) !== null
-  );
+  return isUnsettledPersonalPayment(e, pair);
 }
 
 /**
@@ -46,22 +44,18 @@ export function isSettleableExpense(
 export function calculateSettlementBalance(
   expenses: readonly Expense[],
   pair: Pick<Pair, 'user1Id' | 'user2Id' | 'splitRatioUser1' | 'splitRatioUser2'>,
-  rates: readonly ExchangeRate[] = []
+  baseCurrency: string = DEFAULT_BASE_CURRENCY
 ): SettlementBalance {
   const empty: SettlementBalance = {
     settlementAmount: 0,
     fromUserId: null,
     toUserId: null,
-    currency: BASE_CURRENCY,
-    unconvertedCurrencies: [],
+    currency: baseCurrency,
   };
 
   const { user1Id, user2Id, splitRatioUser1 } = pair;
   // ソロモード（相手未設定）や匿名化済みでは精算は発生しない
   if (!user1Id || !user2Id) return empty;
-
-  const rateMap: RateMap = buildRateMap(rates);
-  const unconverted = new Set<string>();
 
   let user1Paid = 0;
   let user2Paid = 0;
@@ -70,29 +64,19 @@ export function calculateSettlementBalance(
     // 未精算・個人払い・ペア支払者のみ対象（共同口座払いは精算対象外）
     if (!isUnsettledPersonalPayment(e, pair)) continue;
 
-    const converted = convertAmount(e.amount, e.currency, BASE_CURRENCY, rateMap);
-    if (converted === null) {
-      unconverted.add(e.currency);
-      continue; // 換算できない支出は集計から除外し、UIで設定を促す
-    }
-
-    if (e.payerUserId === user1Id) user1Paid += converted;
-    else user2Paid += converted;
+    if (e.payerUserId === user1Id) user1Paid += e.baseAmount;
+    else user2Paid += e.baseAmount;
   }
 
   const total = user1Paid + user2Paid;
-  if (total === 0) {
-    return { ...empty, unconvertedCurrencies: [...unconverted] };
-  }
+  if (total === 0) return empty;
 
   // user1 の本来の負担額と、実際に払った額の差
   const user1Should = (total * splitRatioUser1) / 100;
   const user1Balance = user1Paid - user1Should;
-  const amount = roundMoney(Math.abs(user1Balance), BASE_CURRENCY);
+  const amount = roundMoney(Math.abs(user1Balance), baseCurrency);
 
-  if (amount === 0) {
-    return { ...empty, unconvertedCurrencies: [...unconverted] };
-  }
+  if (amount === 0) return empty;
 
   // user1Balance > 0: user1 が多く払った → user2 が user1 に支払う
   const fromUserId = user1Balance > 0 ? user2Id : user1Id;
@@ -102,7 +86,6 @@ export function calculateSettlementBalance(
     settlementAmount: amount,
     fromUserId,
     toUserId,
-    currency: BASE_CURRENCY,
-    unconvertedCurrencies: [...unconverted],
+    currency: baseCurrency,
   };
 }

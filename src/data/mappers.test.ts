@@ -66,6 +66,18 @@ describe('toExpense', () => {
     const e = toExpense({ ...baseRow, recorded_by: null });
     expect(e.recordedBy).toBeNull();
   });
+
+  it('exchange_rate / base_amount を数値化する', () => {
+    const e = toExpense({ ...baseRow, exchange_rate: '150.5', base_amount: '3000' });
+    expect(e.exchangeRate).toBe(150.5);
+    expect(e.baseAmount).toBe(3000);
+  });
+
+  it('exchange_rate / base_amount 未設定の既存行は rate=1 / baseAmount=amount にフォールバック（デグレ防止）', () => {
+    const e = toExpense(baseRow); // 新カラム無し
+    expect(e.exchangeRate).toBe(1);
+    expect(e.baseAmount).toBe(1234.5); // = amount
+  });
 });
 
 describe('toFixedCost', () => {
@@ -165,6 +177,28 @@ describe('toSharedEntry', () => {
     });
     expect(s.amount).toBe(10000);
     expect(s.type).toBe('deposit');
+  });
+});
+
+describe('toPair', () => {
+  const row = {
+    id: 'p1',
+    invite_code: 'ABCD1234',
+    user1_id: 'u1',
+    user2_id: 'u2',
+    split_ratio_user1: 50,
+    split_ratio_user2: 50,
+    created_at: '2026-07-01T00:00:00Z',
+    updated_at: '2026-07-01T00:00:00Z',
+    deleted_at: null,
+  };
+
+  it('base_currency を写す', () => {
+    expect(toPair({ ...row, base_currency: 'USD' }).baseCurrency).toBe('USD');
+  });
+
+  it('base_currency 未設定の既存ペアは JPY にフォールバック（デグレ防止）', () => {
+    expect(toPair(row).baseCurrency).toBe('JPY');
   });
 });
 

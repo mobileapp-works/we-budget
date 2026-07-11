@@ -14,7 +14,6 @@ import type {
   Settlement,
   SharedAccountEntry,
   Budget,
-  ExchangeRate,
   AppNotification,
   NotificationSettings,
   SettlementBalance,
@@ -22,7 +21,7 @@ import type {
 } from '@/types/models';
 import { DEFAULT_CATEGORIES } from '@/constants';
 import {
-  buildRateMap,
+  roundMoney,
   calculateBudgetUsage,
   calculateSettlementBalance,
   isSettleableExpense,
@@ -63,7 +62,6 @@ interface MockState {
   settlements: Settlement[];
   shared: SharedAccountEntry[];
   budgets: Budget[];
-  rates: ExchangeRate[];
   notifications: AppNotification[];
   notificationSettings: NotificationSettings;
 }
@@ -106,6 +104,7 @@ function seed(): MockState {
     user2Id: PARTNER,
     splitRatioUser1: 50,
     splitRatioUser2: 50,
+    baseCurrency: 'JPY',
     createdAt: nowIso(),
     updatedAt: nowIso(),
     deletedAt: null,
@@ -123,26 +122,33 @@ function seed(): MockState {
     sortOrder: i,
   }));
 
-  const mkExpense = (e: Partial<Expense>): Expense => ({
-    id: uid('exp'),
-    pairId: PAIR,
-    recordedBy: ME,
-    categoryId: 'cat-food',
-    amount: 0,
-    currency: 'JPY',
-    payerUserId: ME,
-    isSharedPayment: false,
-    settlementId: null,
-    expenseDate: daysAgo(0),
-    description: null,
-    storeName: null,
-    receiptImageUrl: null,
-    isFixedCost: false,
-    fixedCostId: null,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-    ...e,
-  });
+  const mkExpense = (e: Partial<Expense>): Expense => {
+    const merged = {
+      id: uid('exp'),
+      pairId: PAIR,
+      recordedBy: ME,
+      categoryId: 'cat-food',
+      amount: 0,
+      currency: 'JPY',
+      exchangeRate: 1,
+      baseAmount: 0,
+      payerUserId: ME,
+      isSharedPayment: false,
+      settlementId: null,
+      expenseDate: daysAgo(0),
+      description: null,
+      storeName: null,
+      receiptImageUrl: null,
+      isFixedCost: false,
+      fixedCostId: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      ...e,
+    };
+    // baseAmount 未指定なら amount×rate（既定は JPY レート1 なので amount と一致）
+    if (e.baseAmount === undefined) merged.baseAmount = roundMoney(merged.amount * merged.exchangeRate, merged.currency);
+    return merged;
+  };
 
   const expenses: Expense[] = [
     mkExpense({ categoryId: 'cat-food', amount: 1200, payerUserId: ME, storeName: 'スーパー', expenseDate: daysAgo(0) }),
@@ -230,7 +236,6 @@ function seed(): MockState {
     settlements: [],
     shared,
     budgets,
-    rates: [],
     notifications,
     notificationSettings,
   };
@@ -270,7 +275,7 @@ function fireBudgetAlerts(expenseDate: string) {
         e.expenseDate.startsWith(monthKey) &&
         (budget.categoryId === null || e.categoryId === budget.categoryId)
     );
-    const usage = calculateBudgetUsage(scoped, budget.amount, state.rates);
+    const usage = calculateBudgetUsage(scoped, budget.amount, state.pair.baseCurrency);
     const sent = BUDGET_ALERT_THRESHOLDS.filter((th) =>
       sentBudgetAlerts.has(`${budget.id}:${monthKey}:${th}`)
     );
@@ -496,6 +501,31 @@ export const mockBackend: Backend = {
     return { ...state.pair };
   },
 
+  async setBaseCurrency(currency, rate) {
+    await delay();
+    if (currency !== state.pair.baseCurrency) {
+      // 既存の金額を新基準へ再換算（確定済み settlements は凍結）。SQL 版 set_base_currency と同挙動。
+      for (const e of state.expenses) {
+        e.exchangeRate = e.exchangeRate * rate;
+        e.baseAmount = roundMoney(e.baseAmount * rate, currency);
+      }
+      for (const b of state.budgets) {
+        b.amount = roundMoney(b.amount * rate, currency);
+        b.currency = currency;
+      }
+      for (const f of state.fixedCosts) {
+        if (f.amount !== null) f.amount = roundMoney(f.amount * rate, currency);
+        f.currency = currency;
+      }
+      for (const s of state.shared) {
+        s.amount = roundMoney(s.amount * rate, currency);
+        s.currency = currency;
+      }
+    }
+    state.pair = { ...state.pair, baseCurrency: currency, updatedAt: nowIso() };
+    return { ...state.pair };
+  },
+
   async listCategories(includeHidden = false) {
     await delay(60);
     return state.categories
@@ -589,12 +619,12 @@ export const mockBackend: Backend = {
 
   async getSettlementBalance() {
     await delay(80);
-    return calculateSettlementBalance(activeExpenses(), state.pair, state.rates);
+    return calculateSettlementBalance(activeExpenses(), state.pair, state.pair.baseCurrency);
   },
 
   async executeSettlement() {
     await delay();
-    const balance: SettlementBalance = calculateSettlementBalance(activeExpenses(), state.pair, state.rates);
+    const balance: SettlementBalance = calculateSettlementBalance(activeExpenses(), state.pair, state.pair.baseCurrency);
     if (balance.settlementAmount <= 0 || !balance.fromUserId || !balance.toUserId) {
       throw new Error('nothing to settle');
     }
@@ -608,11 +638,9 @@ export const mockBackend: Backend = {
       toUserId: balance.toUserId,
       settledAt: nowIso(),
     };
-    // 対象の未精算・個人払い支出にスタンプ。
-    // 集計に含まれた支出のみ（レート未設定の外貨は残高に入っていないため、スタンプすると立替が消える）
-    const rateMap = buildRateMap(state.rates);
+    // 対象の未精算・個人払い支出にスタンプ（集計対象と同一条件。全支出が baseAmount を持つ）。
     for (const e of state.expenses) {
-      if (isSettleableExpense(e, state.pair, rateMap)) {
+      if (isSettleableExpense(e, state.pair)) {
         e.settlementId = settlement.id;
       }
     }
@@ -685,23 +713,6 @@ export const mockBackend: Backend = {
     const budget: Budget = { id: uid('bud'), pairId: state.pair.id, ...input };
     state.budgets.push(budget);
     return { ...budget };
-  },
-
-  async listExchangeRates() {
-    await delay(40);
-    return state.rates.map((r) => ({ ...r }));
-  },
-
-  async upsertExchangeRate(fromCurrency, rate) {
-    await delay();
-    const existing = state.rates.find((r) => r.fromCurrency === fromCurrency && r.toCurrency === 'JPY');
-    if (existing) {
-      existing.rate = rate;
-      return { ...existing };
-    }
-    const created: ExchangeRate = { id: uid('rate'), pairId: state.pair.id, fromCurrency, toCurrency: 'JPY', rate };
-    state.rates.push(created);
-    return { ...created };
   },
 
   async listNotifications() {

@@ -1,5 +1,5 @@
 import { calculateBudgetUsage, getBudgetStatus, newlyReachedBudgetThresholds } from './budget';
-import { makeExpense, makeRate } from '@/test-utils/factories';
+import { makeExpense } from '@/test-utils/factories';
 
 describe('getBudgetStatus', () => {
   it('79%は safe', () => expect(getBudgetStatus(79)).toBe('safe'));
@@ -34,24 +34,22 @@ describe('calculateBudgetUsage', () => {
     expect(usage.percent).toBe(120);
   });
 
-  it('外貨を換算して合計する', () => {
+  it('外貨は支出ごとの baseAmount を合計する', () => {
     const expenses = [
-      makeExpense({ amount: 5000, currency: 'JPY' }),
-      makeExpense({ amount: 20, currency: 'USD' }), // 150円/$ → 3000円
+      makeExpense({ amount: 5000, currency: 'JPY', baseAmount: 5000 }),
+      makeExpense({ amount: 20, currency: 'USD', exchangeRate: 150, baseAmount: 3000 }), // 記録時 3000円
     ];
-    const rates = [makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })];
-    const usage = calculateBudgetUsage(expenses, 10000, rates);
+    const usage = calculateBudgetUsage(expenses, 10000);
     expect(usage.used).toBe(8000);
   });
 
-  it('換算不可の通貨は除外して報告する', () => {
+  it('基準通貨が USD のとき baseAmount(USD) をそのまま合計する', () => {
     const expenses = [
-      makeExpense({ amount: 5000, currency: 'JPY' }),
-      makeExpense({ amount: 20, currency: 'USD' }),
+      makeExpense({ amount: 50, currency: 'USD', baseAmount: 50 }),
+      makeExpense({ amount: 3000, currency: 'JPY', exchangeRate: 0.0066, baseAmount: 19.8 }),
     ];
-    const usage = calculateBudgetUsage(expenses, 10000);
-    expect(usage.used).toBe(5000);
-    expect(usage.unconvertedCurrencies).toContain('USD');
+    const usage = calculateBudgetUsage(expenses, 100, 'USD');
+    expect(usage.used).toBe(69.8);
   });
 });
 

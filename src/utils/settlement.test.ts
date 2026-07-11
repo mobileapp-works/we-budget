@@ -1,6 +1,5 @@
 import { calculateSettlementBalance, isSettleableExpense } from './settlement';
-import { buildRateMap } from './money';
-import { makeExpense, makePair, makeRate } from '@/test-utils/factories';
+import { makeExpense, makePair } from '@/test-utils/factories';
 
 describe('calculateSettlementBalance', () => {
   it('支出が無ければ精算0', () => {
@@ -58,25 +57,35 @@ describe('calculateSettlementBalance', () => {
     expect(result.settlementAmount).toBe(0);
   });
 
-  it('外貨はレートで換算して集計する', () => {
-    // user2 が $20 (=3000円) 立替、50:50 → user1 が1500円払う
-    const expenses = [makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD' })];
-    const rates = [makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })];
-    const result = calculateSettlementBalance(expenses, makePair(), rates);
+  it('外貨は支出ごとの baseAmount で集計する', () => {
+    // user2 が $20 を立替（記録時レート150 → baseAmount=3000円）、50:50 → user1 が1500円払う
+    const expenses = [
+      makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD', exchangeRate: 150, baseAmount: 3000 }),
+    ];
+    const result = calculateSettlementBalance(expenses, makePair(), 'JPY');
     expect(result.settlementAmount).toBe(1500);
     expect(result.fromUserId).toBe('user-1');
     expect(result.toUserId).toBe('user-2');
+    expect(result.currency).toBe('JPY');
   });
 
-  it('レート未設定の通貨は集計から除外し unconverted に報告する', () => {
+  it('基準通貨と外貨が混在しても baseAmount を合計する', () => {
     const expenses = [
-      makeExpense({ payerUserId: 'user-1', amount: 3000, currency: 'JPY' }),
-      makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD' }), // レートなし
+      makeExpense({ payerUserId: 'user-1', amount: 3000, currency: 'JPY', baseAmount: 3000 }),
+      makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD', exchangeRate: 150, baseAmount: 3000 }),
     ];
+    // user1=3000, user2=3000 → 精算不要
     const result = calculateSettlementBalance(expenses, makePair());
-    // USD は除外され、JPY3000のみ → user2が1500払う
-    expect(result.settlementAmount).toBe(1500);
-    expect(result.unconvertedCurrencies).toContain('USD');
+    expect(result.settlementAmount).toBe(0);
+  });
+
+  it('基準通貨が USD のとき USD で残高を返す', () => {
+    const expenses = [
+      makeExpense({ payerUserId: 'user-1', amount: 20, currency: 'USD', baseAmount: 20 }),
+    ];
+    const result = calculateSettlementBalance(expenses, makePair(), 'USD');
+    expect(result.settlementAmount).toBe(10);
+    expect(result.currency).toBe('USD');
   });
 
   it('複数支出が混在しても正しく集計する', () => {
@@ -116,49 +125,41 @@ describe('calculateSettlementBalance', () => {
 
 describe('isSettleableExpense', () => {
   const pair = makePair();
-  const noRates = buildRateMap([]);
-  const usdRate = buildRateMap([makeRate({ fromCurrency: 'USD', toCurrency: 'JPY', rate: 150 })]);
 
   it('未精算・個人払い・JPYはスタンプ対象', () => {
     const e = makeExpense({ payerUserId: 'user-1', amount: 3000 });
-    expect(isSettleableExpense(e, pair, noRates)).toBe(true);
+    expect(isSettleableExpense(e, pair)).toBe(true);
   });
 
   it('精算済みは対象外', () => {
     const e = makeExpense({ payerUserId: 'user-1', amount: 3000, settlementId: 'settled-1' });
-    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+    expect(isSettleableExpense(e, pair)).toBe(false);
   });
 
   it('共同口座払いは対象外', () => {
     const e = makeExpense({ payerUserId: null, isSharedPayment: true, amount: 3000 });
-    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+    expect(isSettleableExpense(e, pair)).toBe(false);
   });
 
   it('退会者(payerUserId=null)の個人払いは対象外', () => {
     const e = makeExpense({ payerUserId: null, isSharedPayment: false, amount: 3000 });
-    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+    expect(isSettleableExpense(e, pair)).toBe(false);
   });
 
-  it('レート未設定の外貨は対象外（精算額に含まれないためスタンプすると立替が消える）', () => {
-    const e = makeExpense({ payerUserId: 'user-1', amount: 20, currency: 'USD' });
-    expect(isSettleableExpense(e, pair, noRates)).toBe(false);
+  it('外貨(baseAmount 保持)も対象になる', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 20, currency: 'USD', baseAmount: 3000 });
+    expect(isSettleableExpense(e, pair)).toBe(true);
   });
 
-  it('レート設定済みの外貨は対象', () => {
-    const e = makeExpense({ payerUserId: 'user-1', amount: 20, currency: 'USD' });
-    expect(isSettleableExpense(e, pair, usdRate)).toBe(true);
-  });
-
-  it('calculateSettlementBalance の集計対象と一致する（未換算外貨の混在ケース）', () => {
+  it('calculateSettlementBalance の集計対象と一致する（外貨混在ケース）', () => {
     // 集計に入った支出だけがスタンプ対象になること（= バグの回帰テスト）
     const expenses = [
-      makeExpense({ payerUserId: 'user-1', amount: 3000, currency: 'JPY' }),
-      makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD' }), // レートなし→集計外
+      makeExpense({ payerUserId: 'user-1', amount: 3000, currency: 'JPY', baseAmount: 3000 }),
+      makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD', baseAmount: 3000 }),
     ];
     const result = calculateSettlementBalance(expenses, pair);
-    expect(result.settlementAmount).toBe(1500); // JPYのみ
-    const stamped = expenses.filter((e) => isSettleableExpense(e, pair, noRates));
-    expect(stamped).toHaveLength(1);
-    expect(stamped[0]?.currency).toBe('JPY'); // USDはスタンプされず次回精算に残る
+    expect(result.settlementAmount).toBe(0); // 3000 vs 3000 で精算不要
+    const stamped = expenses.filter((e) => isSettleableExpense(e, pair));
+    expect(stamped).toHaveLength(2); // 全支出が baseAmount を持つのでスタンプ対象
   });
 });

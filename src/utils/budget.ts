@@ -1,12 +1,13 @@
 /**
  * 予算の集計・状態判定（純粋関数）。
- * 出典: design.md（予算80%で警告 / 100%超で超過。多通貨は換算して合計）。
+ * 出典: design.md（予算80%で警告 / 100%超で超過）。
+ * 多通貨: 各支出は基準通貨換算済みの baseAmount を持つため、それを合計する。
  */
-import type { Expense, ExchangeRate } from '@/types/models';
+import type { Expense } from '@/types/models';
 import { APP_CONFIG } from '@/constants';
-import { buildRateMap, convertAmount, roundMoney, type RateMap } from './money';
+import { roundMoney } from './money';
 
-const BASE_CURRENCY = 'JPY';
+const DEFAULT_BASE_CURRENCY = 'JPY';
 
 export type BudgetStatus = 'safe' | 'warning' | 'exceeded';
 
@@ -15,7 +16,6 @@ export interface BudgetUsage {
   limit: number; // 予算額（基準通貨）
   percent: number; // 使用率（%）。limit=0 のときは 0
   status: BudgetStatus;
-  unconvertedCurrencies: string[];
 }
 
 /** 使用率から状態を判定する。 */
@@ -46,27 +46,21 @@ export function newlyReachedBudgetThresholds(
 /**
  * 支出リストと予算上限から使用状況を計算する。
  * expenses は「予算スコープ（対象カテゴリ・対象月）」で絞り込み済みのものを渡す。
+ * 予算額(limit)・支出(baseAmount)とも基準通貨で表現されている前提。
  */
 export function calculateBudgetUsage(
   expenses: readonly Expense[],
   limit: number,
-  rates: readonly ExchangeRate[] = []
+  baseCurrency: string = DEFAULT_BASE_CURRENCY
 ): BudgetUsage {
-  const rateMap: RateMap = buildRateMap(rates);
-  const unconverted = new Set<string>();
   let used = 0;
-
   for (const e of expenses) {
-    const converted = convertAmount(e.amount, e.currency, BASE_CURRENCY, rateMap);
-    if (converted === null) {
-      unconverted.add(e.currency);
-      continue;
-    }
-    used += converted;
+    used += e.baseAmount;
   }
 
-  used = roundMoney(used, BASE_CURRENCY);
+  used = roundMoney(used, baseCurrency);
   const safeLimit = limit > 0 ? limit : 0;
+  // percent は表示・閾値判定用に小数2桁まで保持（通貨に依らない）
   const percent = safeLimit > 0 ? roundMoney((used / safeLimit) * 100, 'USD') : 0;
 
   return {
@@ -74,6 +68,5 @@ export function calculateBudgetUsage(
     limit: safeLimit,
     percent,
     status: getBudgetStatus(percent),
-    unconvertedCurrencies: [...unconverted],
   };
 }

@@ -116,6 +116,9 @@
     "byManual": "手動で入力",
     "amount": "金額",
     "currency": "通貨",
+    "rate": "為替レート（1 {{currency}} = ? {{base}}）",
+    "rateRequired": "為替レートを入力してください",
+    "baseAmountPreview": "≈ {{amount}}",
     "category": "カテゴリ",
     "payer": "支払った人",
     "payerSelf": "自分",
@@ -159,14 +162,7 @@
     "soloEmptyTitle": "パートナーを招待しましょう",
     "soloEmptyBody": "ペアになると立替の精算ができます。",
     "noBalanceTitle": "精算はありません",
-    "noBalanceBody": "立替の差額はありません。",
-    "unconvertedWarning": "為替レート未設定の通貨があり、精算に含まれていません: {{currencies}}",
-    "enterRatesTitle": "為替レートの設定",
-    "enterRatesBody": "1単位あたりの円を入力すると、外貨の支出が精算に含まれます。",
-    "rateLabel": "1 {{currency}} あたりの円",
-    "ratePlaceholder": "例: 150",
-    "saveRates": "レートを保存",
-    "ratesSaved": "為替レートを保存しました"
+    "noBalanceBody": "立替の差額はありません。"
   },
   "sharedAccount": {
     "title": "共同口座",
@@ -297,7 +293,16 @@
     "categories": "カテゴリ管理",
     "fixedCosts": "固定費",
     "budget": "予算",
-    "sharedAccount": "共同口座"
+    "sharedAccount": "共同口座",
+    "baseCurrency": "基準通貨",
+    "baseCurrencyCurrent": "現在の基準通貨",
+    "baseCurrencySelect": "新しい基準通貨を選択",
+    "baseCurrencyChangeRate": "1 {{from}} = ? {{to}}",
+    "baseCurrencyChangeWarning": "過去の支出・予算・固定費・共同口座の金額が、このレートで新しい通貨に換算されます。一度換算すると、元に戻しても丸め誤差で完全には一致しません。確定済みの精算履歴は当時の通貨のまま変わりません。頻繁な変更は避けてください。",
+    "baseCurrencyRateInvalid": "有効なレートを入力してください",
+    "baseCurrencyChangeConfirm": "基準通貨を {{from}} から {{to}} に変更し、過去の金額をレート {{rate}} で換算します。よろしいですか？",
+    "baseCurrencyChangeApply": "変更して換算する",
+    "baseCurrencyChanged": "基準通貨を変更しました"
   },
   "notificationSettings": {
     "title": "通知設定",

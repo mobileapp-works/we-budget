@@ -35,6 +35,8 @@ export interface Pair {
   user2Id: UUID | null;
   splitRatioUser1: number; // 1-99（合計100）
   splitRatioUser2: number;
+  /** ペアの基準通貨。レポート・予算・精算はこの通貨で集計・表示する。 */
+  baseCurrency: string;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
   deletedAt: ISODateTime | null;
@@ -61,6 +63,10 @@ export interface Expense {
   categoryId: UUID;
   amount: number;
   currency: string;
+  /** 1 currency = exchangeRate baseCurrency（基準通貨と同じなら 1）。 */
+  exchangeRate: number;
+  /** 基準通貨に換算した金額（= round(amount × exchangeRate)）。集計・精算はこれを合計する。 */
+  baseAmount: number;
   payerUserId: UUID | null;
   isSharedPayment: boolean;
   settlementId: UUID | null; // null=未精算
@@ -193,13 +199,12 @@ export interface NotificationSettings {
 
 /** 立替残高計算（RPC: calculate_settlement_balance）の結果 */
 export interface SettlementBalance {
-  /** 精算すべき金額（JPY換算、絶対値）。0なら精算不要。 */
+  /** 精算すべき金額（基準通貨、絶対値）。0なら精算不要。 */
   settlementAmount: number;
   fromUserId: UUID | null; // 払う側
   toUserId: UUID | null; // 受け取る側
+  /** 基準通貨（pair.baseCurrency）。 */
   currency: string;
-  /** レート未設定で換算できなかった通貨 */
-  unconvertedCurrencies: string[];
 }
 
 /**

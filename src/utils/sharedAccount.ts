@@ -3,11 +3,14 @@
  * 出典: design.md
  *   残高 = Σ(入金) − Σ(現金移動withdrawal) − Σ(共同口座払いの支出)
  * 共同口座での買い物は expenses(isSharedPayment=true) に一本化して記録される。
+ *
+ * 多通貨: 入金/出金は基準通貨で記録される（entry.amount がそのまま基準通貨）。
+ * 共同口座払いの支出は基準通貨換算済みの baseAmount を使う。
  */
-import type { Expense, SharedAccountEntry, ExchangeRate } from '@/types/models';
-import { buildRateMap, convertAmount, roundMoney, type RateMap } from './money';
+import type { Expense, SharedAccountEntry } from '@/types/models';
+import { roundMoney } from './money';
 
-const BASE_CURRENCY = 'JPY';
+const DEFAULT_BASE_CURRENCY = 'JPY';
 
 /** 当事者が紐づかない入金/出金（残高調整）のキー。userId は UUID なので衝突しない。 */
 export const SHARED_NO_USER = '__none__';
@@ -16,63 +19,48 @@ export interface SharedBalanceResult {
   balance: number;
   totalDeposits: number;
   totalSpent: number; // withdrawal + 共同口座払い支出
-  /** 入金者ごとの入金合計（BASE_CURRENCY換算）。userId が null の分は SHARED_NO_USER に集約。 */
+  /** 入金者ごとの入金合計（基準通貨）。userId が null の分は SHARED_NO_USER に集約。 */
   depositsByUser: Record<string, number>;
-  unconvertedCurrencies: string[];
 }
 
 export function calculateSharedBalance(
   entries: readonly SharedAccountEntry[],
   sharedExpenses: readonly Expense[],
-  rates: readonly ExchangeRate[] = []
+  baseCurrency: string = DEFAULT_BASE_CURRENCY
 ): SharedBalanceResult {
-  const rateMap: RateMap = buildRateMap(rates);
-  const unconverted = new Set<string>();
-
   let deposits = 0;
   let withdrawals = 0;
   const depositsByUserRaw: Record<string, number> = {};
 
   for (const entry of entries) {
-    const converted = convertAmount(entry.amount, entry.currency, BASE_CURRENCY, rateMap);
-    if (converted === null) {
-      unconverted.add(entry.currency);
-      continue;
-    }
     if (entry.type === 'deposit') {
-      deposits += converted;
+      deposits += entry.amount;
       const key = entry.userId ?? SHARED_NO_USER;
-      depositsByUserRaw[key] = (depositsByUserRaw[key] ?? 0) + converted;
+      depositsByUserRaw[key] = (depositsByUserRaw[key] ?? 0) + entry.amount;
     } else {
-      withdrawals += converted;
+      withdrawals += entry.amount;
     }
   }
 
   const depositsByUser: Record<string, number> = {};
   for (const [key, value] of Object.entries(depositsByUserRaw)) {
-    depositsByUser[key] = roundMoney(value, BASE_CURRENCY);
+    depositsByUser[key] = roundMoney(value, baseCurrency);
   }
 
   let sharedSpent = 0;
   for (const e of sharedExpenses) {
     if (!e.isSharedPayment) continue; // 念のため共同口座払いのみ
-    const converted = convertAmount(e.amount, e.currency, BASE_CURRENCY, rateMap);
-    if (converted === null) {
-      unconverted.add(e.currency);
-      continue;
-    }
-    sharedSpent += converted;
+    sharedSpent += e.baseAmount;
   }
 
-  const totalSpent = roundMoney(withdrawals + sharedSpent, BASE_CURRENCY);
-  const totalDeposits = roundMoney(deposits, BASE_CURRENCY);
-  const balance = roundMoney(totalDeposits - totalSpent, BASE_CURRENCY);
+  const totalSpent = roundMoney(withdrawals + sharedSpent, baseCurrency);
+  const totalDeposits = roundMoney(deposits, baseCurrency);
+  const balance = roundMoney(totalDeposits - totalSpent, baseCurrency);
 
   return {
     balance,
     totalDeposits,
     totalSpent,
     depositsByUser,
-    unconvertedCurrencies: [...unconverted],
   };
 }

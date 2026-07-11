@@ -13,7 +13,6 @@ import type {
   Settlement,
   SharedAccountEntry,
   Budget,
-  ExchangeRate,
   AppNotification,
   NotificationSettings,
   SettlementBalance,
@@ -35,6 +34,10 @@ export interface ExpenseInput {
   categoryId: UUID;
   amount: number;
   currency: string;
+  /** 1 currency = exchangeRate baseCurrency（基準通貨と同じなら 1）。 */
+  exchangeRate: number;
+  /** 基準通貨換算額（= round(amount × exchangeRate)）。 */
+  baseAmount: number;
   payerUserId: UUID | null;
   isSharedPayment: boolean;
   expenseDate: string;
@@ -135,6 +138,11 @@ export interface Backend {
   cancelPairRequest(requestId: UUID): Promise<void>;
   leavePair(): Promise<SessionContext>;
   updateSplitRatio(user1Percent: number): Promise<Pair>;
+  /**
+   * ペアの基準通貨を変更する。currency が現在と異なる場合、rate（1 旧基準 = rate 新基準）で
+   * 既存の支出・予算・固定費・共同口座の金額を新基準へ再換算する（確定済み精算は凍結）。
+   */
+  setBaseCurrency(currency: string, rate: number): Promise<Pair>;
 
   // --- カテゴリ ---
   /** includeHidden=true で非表示カテゴリも含める（カテゴリ管理画面の再表示用）。 */
@@ -169,10 +177,6 @@ export interface Backend {
   // --- 予算 ---
   listBudgets(): Promise<Budget[]>;
   upsertBudget(input: BudgetInput): Promise<Budget>;
-
-  // --- 為替レート ---
-  listExchangeRates(): Promise<ExchangeRate[]>;
-  upsertExchangeRate(fromCurrency: string, rate: number): Promise<ExchangeRate>;
 
   // --- 通知 ---
   listNotifications(): Promise<AppNotification[]>;

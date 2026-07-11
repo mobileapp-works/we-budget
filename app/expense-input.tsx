@@ -20,15 +20,19 @@ import {
   useExpenseActions,
   useReceiptImageUrl,
   useReceiptOcr,
+  useLocale,
 } from '@/hooks';
 import { usePreferencesStore } from '@/store/preferencesStore';
 import { useToast } from '@/providers/ToastProvider';
-import { spacing, typography, radius, SUPPORTED_CURRENCIES, APP_CONFIG } from '@/constants';
-import { parseAmount } from '@/utils';
+import { spacing, typography, radius, SUPPORTED_CURRENCIES } from '@/constants';
+import { parseAmount, roundMoney, formatCurrency } from '@/utils';
 import { recordSaveAndMaybeShowInterstitial } from '@/lib/interstitial';
 import { prepareReceiptUpload } from '@/lib/receiptImage';
 import type { ExpenseInput, ImageUpload } from '@/data';
 import type { UUID } from '@/types/models';
+
+/** 通貨ごとの直近入力レートをセッション中だけ覚えておき、次回入力時にプリフィルする。 */
+const lastRateByCurrency: Record<string, string> = {};
 
 type PayerChoice = 'self' | 'partner' | 'shared';
 type Step = 'choose' | 'form';
@@ -39,6 +43,8 @@ export default function ExpenseInputScreen() {
   const router = useRouter();
   const toast = useToast();
   const session = useRequireSession();
+  const locale = useLocale();
+  const baseCurrency = session.pair.baseCurrency;
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = typeof id === 'string';
 
@@ -54,7 +60,9 @@ export default function ExpenseInputScreen() {
   // フォーム状態
   const [step, setStep] = useState<Step>(editing ? 'form' : 'choose');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState<string>(APP_CONFIG.defaultCurrency);
+  const [currency, setCurrency] = useState<string>(baseCurrency);
+  // 外貨のとき「1 currency = ? baseCurrency」のレート（基準通貨と同じなら未使用）。
+  const [rate, setRate] = useState('');
   const [categoryId, setCategoryId] = useState<UUID | null>(null);
   const [payer, setPayer] = useState<PayerChoice>('self');
   const [date, setDate] = useState<Date>(new Date());
@@ -76,6 +84,7 @@ export default function ExpenseInputScreen() {
     if (editing && e) {
       setAmount(String(e.amount));
       setCurrency(e.currency);
+      if (e.currency !== baseCurrency) setRate(String(e.exchangeRate));
       setCategoryId(e.categoryId);
       setPayer(e.isSharedPayment ? 'shared' : e.payerUserId === session.userId ? 'self' : 'partner');
       setDate(new Date(e.expenseDate));
@@ -83,7 +92,7 @@ export default function ExpenseInputScreen() {
       setMemo(e.description ?? '');
       setImageUri(e.receiptImageUrl);
     }
-  }, [editing, existing.data, session.userId]);
+  }, [editing, existing.data, session.userId, baseCurrency]);
 
   // 初期カテゴリを先頭に
   useEffect(() => {
@@ -160,10 +169,18 @@ export default function ExpenseInputScreen() {
     return session.partner?.id ?? existing.data?.payerUserId ?? null;
   };
 
+  const isForeign = currency !== baseCurrency;
+
   const handleSave = async () => {
     const parsed = parseAmount(amount);
     if (parsed === null) {
       setError(t('error.amountPositive'));
+      return;
+    }
+    // 外貨は基準通貨への換算レートを必須にする（未入力だと集計に載らないため）。
+    const exchangeRate = isForeign ? parseAmount(rate) : 1;
+    if (isForeign && exchangeRate === null) {
+      toast.show(t('expense.rateRequired'), 'error');
       return;
     }
     if (!categoryId) return;
@@ -181,6 +198,8 @@ export default function ExpenseInputScreen() {
         categoryId,
         amount: parsed,
         currency,
+        exchangeRate: exchangeRate!,
+        baseAmount: roundMoney(parsed * exchangeRate!, baseCurrency),
         payerUserId: resolvePayerUserId(),
         isSharedPayment: payer === 'shared',
         expenseDate: dayjs(date).format('YYYY-MM-DD'),
@@ -194,6 +213,7 @@ export default function ExpenseInputScreen() {
       } else {
         await addExpense.mutateAsync(input);
       }
+      if (isForeign) lastRateByCurrency[currency] = rate.trim();
       toast.show(t('expense.saved'), 'success');
       router.back();
       // 新規の支出保存を「区切り」として、頻度条件を満たせば全画面広告を表示する（編集時は出さない）。
@@ -270,8 +290,37 @@ export default function ExpenseInputScreen() {
           <ChipRow
             items={SUPPORTED_CURRENCIES.map((c) => ({ key: c, label: c }))}
             selectedKey={currency}
-            onSelect={setCurrency}
+            onSelect={(c) => {
+              setCurrency(c);
+              // 外貨に切り替えたら、同通貨の直近レートをプリフィル（なければ空のまま）。
+              if (c !== baseCurrency && rate.trim() === '') setRate(lastRateByCurrency[c] ?? '');
+            }}
           />
+
+          {/* 為替レート（基準通貨と異なる通貨のときだけ） */}
+          {isForeign ? (
+            <>
+              <TextField
+                label={t('expense.rate', { currency, base: baseCurrency })}
+                value={rate}
+                onChangeText={setRate}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+              {(() => {
+                const pa = parseAmount(amount);
+                const pr = parseAmount(rate);
+                if (pa === null || pr === null) return null;
+                return (
+                  <Text style={[typography.footnote, { color: colors.textSecondary, marginBottom: spacing.md }]}>
+                    {t('expense.baseAmountPreview', {
+                      amount: formatCurrency(roundMoney(pa * pr, baseCurrency), baseCurrency, locale),
+                    })}
+                  </Text>
+                );
+              })()}
+            </>
+          ) : null}
 
           {/* カテゴリ */}
           <FieldLabel label={t('expense.category')} />

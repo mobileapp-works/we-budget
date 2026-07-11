@@ -7,10 +7,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Screen, Card, EmptyState, StateView, SegmentedControl, CategoryIcon, useCategoryName } from '@/components';
-import { useExpenses, useCategories, useExchangeRates, useLocale } from '@/hooks';
+import { useExpenses, useCategories, useLocale, useRequireSession } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography, radius } from '@/constants';
-import { buildRateMap, convertAmount, formatCurrency, getMonthKey, roundMoney } from '@/utils';
+import { formatCurrency, getMonthKey, roundMoney } from '@/utils';
 import type { Category } from '@/types/models';
 
 type Period = 'month' | 'week';
@@ -20,11 +20,12 @@ export default function ReportScreen() {
   const { colors } = useTheme();
   const locale = useLocale();
   const resolveName = useCategoryName();
+  const session = useRequireSession();
+  const baseCurrency = session.pair.baseCurrency;
 
   const [period, setPeriod] = useState<Period>('month');
   const expensesQuery = useExpenses(getMonthKey());
   const { data: categories } = useCategories();
-  const { data: rates } = useExchangeRates();
 
   const expenses = expensesQuery.data ?? [];
 
@@ -35,28 +36,25 @@ export default function ReportScreen() {
     return expenses.filter((e) => dayjs(e.expenseDate).isAfter(weekAgo));
   }, [expenses, period]);
 
-  // カテゴリ別合計（JPY換算）
+  // カテゴリ別合計（基準通貨換算済みの baseAmount を合計）
   const breakdown = useMemo(() => {
-    const rateMap = buildRateMap(rates ?? []);
     const totals = new Map<string, number>();
     let total = 0;
     for (const e of scoped) {
-      const converted = convertAmount(e.amount, e.currency, 'JPY', rateMap);
-      if (converted === null) continue;
-      totals.set(e.categoryId, (totals.get(e.categoryId) ?? 0) + converted);
-      total += converted;
+      totals.set(e.categoryId, (totals.get(e.categoryId) ?? 0) + e.baseAmount);
+      total += e.baseAmount;
     }
     const categoryMap = new Map<string, Category>();
     categories?.forEach((c) => categoryMap.set(c.id, c));
     const rows = [...totals.entries()]
       .map(([categoryId, amount]) => ({
         category: categoryMap.get(categoryId),
-        amount: roundMoney(amount, 'JPY'),
+        amount: roundMoney(amount, baseCurrency),
         percent: total > 0 ? (amount / total) * 100 : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
-    return { rows, total: roundMoney(total, 'JPY') };
-  }, [scoped, rates, categories]);
+    return { rows, total: roundMoney(total, baseCurrency) };
+  }, [scoped, categories, baseCurrency]);
 
   return (
     <Screen padded={false}>
@@ -86,7 +84,7 @@ export default function ReportScreen() {
           <Card backgroundColor={colors.coralSoft} style={styles.totalCard}>
             <Text style={[typography.subhead, { color: colors.textSecondary }]}>{t('report.total')}</Text>
             <Text style={[typography.title1, { color: colors.textPrimary }]}>
-              {formatCurrency(breakdown.total, 'JPY', locale)}
+              {formatCurrency(breakdown.total, baseCurrency, locale)}
             </Text>
           </Card>
 
@@ -100,7 +98,7 @@ export default function ReportScreen() {
                       {row.category ? resolveName(row.category) : '-'}
                     </Text>
                     <Text style={[typography.body, { color: colors.textPrimary }]}>
-                      {formatCurrency(row.amount, 'JPY', locale)}
+                      {formatCurrency(row.amount, baseCurrency, locale)}
                     </Text>
                   </View>
                   <View style={[styles.barTrack, { backgroundColor: colors.coralSoft }]}>

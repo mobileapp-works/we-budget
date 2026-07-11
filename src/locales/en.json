@@ -116,6 +116,9 @@
     "byManual": "Enter manually",
     "amount": "Amount",
     "currency": "Currency",
+    "rate": "Exchange rate (1 {{currency}} = ? {{base}})",
+    "rateRequired": "Please enter an exchange rate",
+    "baseAmountPreview": "≈ {{amount}}",
     "category": "Category",
     "payer": "Paid by",
     "payerSelf": "Me",
@@ -159,14 +162,7 @@
     "soloEmptyTitle": "Invite your partner",
     "soloEmptyBody": "Pair up to settle reimbursements.",
     "noBalanceTitle": "Nothing to settle",
-    "noBalanceBody": "There's no outstanding balance.",
-    "unconvertedWarning": "Some currencies lack an exchange rate and are excluded: {{currencies}}",
-    "enterRatesTitle": "Exchange rates",
-    "enterRatesBody": "Enter JPY per unit to include foreign-currency expenses in settlement.",
-    "rateLabel": "JPY per 1 {{currency}}",
-    "ratePlaceholder": "e.g. 150",
-    "saveRates": "Save rates",
-    "ratesSaved": "Exchange rates saved"
+    "noBalanceBody": "There's no outstanding balance."
   },
   "sharedAccount": {
     "title": "Shared account",
@@ -297,7 +293,16 @@
     "categories": "Categories",
     "fixedCosts": "Fixed costs",
     "budget": "Budget",
-    "sharedAccount": "Shared account"
+    "sharedAccount": "Shared account",
+    "baseCurrency": "Base currency",
+    "baseCurrencyCurrent": "Current base currency",
+    "baseCurrencySelect": "Select a new base currency",
+    "baseCurrencyChangeRate": "1 {{from}} = ? {{to}}",
+    "baseCurrencyChangeWarning": "Past expenses, budgets, fixed costs, and the shared account will be converted to the new currency at this rate. Once converted, switching back won't exactly restore the original values due to rounding. Completed settlements stay in their original currency. Avoid changing this often.",
+    "baseCurrencyRateInvalid": "Please enter a valid rate",
+    "baseCurrencyChangeConfirm": "Change the base currency from {{from}} to {{to}} and convert past amounts at rate {{rate}}. Continue?",
+    "baseCurrencyChangeApply": "Change & convert",
+    "baseCurrencyChanged": "Base currency changed"
   },
   "notificationSettings": {
     "title": "Notification settings",

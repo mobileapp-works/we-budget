@@ -12,7 +12,6 @@ import {
   useRequireSession,
   useExpenses,
   useBudgets,
-  useExchangeRates,
   useSettlementBalance,
   useUnreadCount,
   useExpenseHelpers,
@@ -29,11 +28,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const locale = useLocale();
   const session = useRequireSession();
+  const baseCurrency = session.pair.baseCurrency;
 
   const monthKey = getMonthKey();
   const expensesQuery = useExpenses(monthKey);
   const { data: budgets } = useBudgets();
-  const { data: rates } = useExchangeRates();
   const balanceQuery = useSettlementBalance();
   const unread = useUnreadCount();
   const { getCategory, getCategoryName, getPayerLabel } = useExpenseHelpers();
@@ -41,10 +40,10 @@ export default function HomeScreen() {
   const expenses = expensesQuery.data ?? [];
   const overallBudget = budgets?.find((b) => b.categoryId === null);
 
-  // 今月の支出合計（予算ユーティリティを流用して通貨換算込みで集計）
+  // 今月の支出合計（予算ユーティリティを流用して baseAmount で集計）
   const usage = useMemo(
-    () => calculateBudgetUsage(expenses, overallBudget?.amount ?? 0, rates ?? []),
-    [expenses, overallBudget, rates]
+    () => calculateBudgetUsage(expenses, overallBudget?.amount ?? 0, baseCurrency),
+    [expenses, overallBudget, baseCurrency]
   );
 
   const recent = expenses.slice(0, 5);
@@ -89,7 +88,7 @@ export default function HomeScreen() {
           <Card backgroundColor={colors.coralSoft} style={styles.summaryCard}>
             <Text style={[typography.subhead, { color: colors.textSecondary }]}>{t('home.totalSpending')}</Text>
             <Text style={[typography.display, { color: colors.textPrimary }]}>
-              {formatCurrency(usage.used, 'JPY', locale)}
+              {formatCurrency(usage.used, baseCurrency, locale)}
             </Text>
           </Card>
 
@@ -99,6 +98,7 @@ export default function HomeScreen() {
               <BalanceCard
                 onPress={() => router.push('/settlement')}
                 amount={balanceQuery.data.settlementAmount}
+                currency={balanceQuery.data.currency}
                 meReceives={balanceQuery.data.toUserId === session.userId}
                 partnerName={session.partner?.displayName ?? t('expense.payerPartner')}
               />
@@ -122,7 +122,7 @@ export default function HomeScreen() {
               </Text>
               <ProgressBar percent={usage.percent} status={usage.status} />
               <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: spacing.xs }]}>
-                {formatCurrency(usage.used, 'JPY', locale)} / {formatCurrency(usage.limit, 'JPY', locale)}（
+                {formatCurrency(usage.used, baseCurrency, locale)} / {formatCurrency(usage.limit, baseCurrency, locale)}（
                 {Math.round(usage.percent)}%）
               </Text>
             </Card>
@@ -154,11 +154,13 @@ export default function HomeScreen() {
 /** 立替残高カード。受け取り＝success色＋記号で色だけに頼らない。 */
 function BalanceCard({
   amount,
+  currency,
   meReceives,
   partnerName,
   onPress,
 }: {
   amount: number;
+  currency: string;
   meReceives: boolean;
   partnerName: string;
   onPress: () => void;
@@ -177,14 +179,14 @@ function BalanceCard({
   const sign = settled ? '' : meReceives ? '＋' : '−';
 
   return (
-    <Card onPress={onPress} accessibilityLabel={`${label} ${formatCurrency(amount, 'JPY', locale)}`}>
+    <Card onPress={onPress} accessibilityLabel={`${label} ${formatCurrency(amount, currency, locale)}`}>
       <Text style={[typography.subhead, { color: colors.textSecondary }]}>{t('home.balanceTitle')}</Text>
       <View style={[styles.row, { marginTop: spacing.xxs, justifyContent: 'space-between' }]}>
         <Text style={[typography.body, { color: colors.textSecondary }]}>{label}</Text>
         {!settled ? (
           <Text style={[typography.title2, { color }]}>
             {sign}
-            {formatCurrency(amount, 'JPY', locale)}
+            {formatCurrency(amount, currency, locale)}
           </Text>
         ) : (
           <Ionicons name="checkmark-circle" size={24} color={colors.success} />

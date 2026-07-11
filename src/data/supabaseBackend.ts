@@ -19,7 +19,6 @@ import {
   toSettlement,
   toSharedEntry,
   toBudget,
-  toExchangeRate,
   toNotification,
   toNotificationSettings,
 } from './mappers';
@@ -283,6 +282,13 @@ export const supabaseBackend: Backend = {
     return toPair(data);
   },
 
+  async setBaseCurrency(currency, rate) {
+    const sb = requireSupabase();
+    const { data, error } = await sb.rpc('set_base_currency', { p_currency: currency, p_rate: rate });
+    if (error) throw error;
+    return toPair(data);
+  },
+
   // --- カテゴリ ---
   async listCategories(includeHidden = false) {
     const sb = requireSupabase();
@@ -374,6 +380,8 @@ export const supabaseBackend: Backend = {
         category_id: input.categoryId,
         amount: input.amount,
         currency: input.currency,
+        exchange_rate: input.exchangeRate,
+        base_amount: input.baseAmount,
         payer_user_id: input.payerUserId,
         is_shared_payment: input.isSharedPayment,
         expense_date: input.expenseDate,
@@ -395,6 +403,8 @@ export const supabaseBackend: Backend = {
         category_id: input.categoryId,
         amount: input.amount,
         currency: input.currency,
+        exchange_rate: input.exchangeRate,
+        base_amount: input.baseAmount,
         payer_user_id: input.payerUserId,
         is_shared_payment: input.isSharedPayment,
         expense_date: input.expenseDate,
@@ -563,29 +573,6 @@ export const supabaseBackend: Backend = {
       .single();
     if (error) throw error;
     return toBudget(data);
-  },
-
-  // --- 為替レート ---
-  async listExchangeRates() {
-    const sb = requireSupabase();
-    const { data, error } = await sb.from('exchange_rates').select('*');
-    if (error) throw error;
-    return (data ?? []).map(toExchangeRate);
-  },
-
-  async upsertExchangeRate(fromCurrency, rate) {
-    const sb = requireSupabase();
-    const { pairId } = await context();
-    const { data, error } = await sb
-      .from('exchange_rates')
-      .upsert(
-        { pair_id: pairId, from_currency: fromCurrency, to_currency: 'JPY', rate },
-        { onConflict: 'pair_id,from_currency,to_currency' }
-      )
-      .select()
-      .single();
-    if (error) throw error;
-    return toExchangeRate(data);
   },
 
   // --- 通知 ---

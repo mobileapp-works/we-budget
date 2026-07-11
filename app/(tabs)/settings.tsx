@@ -85,6 +85,7 @@ export default function SettingsScreen() {
           <LinkRow icon="pricetags-outline" label={t('settings.categories')} onPress={() => router.push('/categories')} />
           <LinkRow icon="repeat-outline" label={t('settings.fixedCosts')} onPress={() => router.push('/fixed-costs')} />
           <LinkRow icon="wallet-outline" label={t('settings.budget')} onPress={() => router.push('/budget')} />
+          <LinkRow icon="cash-outline" label={t('settings.baseCurrency')} onPress={() => router.push('/base-currency')} />
           <LinkRow icon="people-outline" label={t('settings.sharedAccount')} onPress={() => router.push('/shared-account')} />
           <LinkRow
             icon="notifications-outline"

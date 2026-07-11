@@ -10,7 +10,6 @@ import {
   useSharedEntries,
   useSharedAccountActions,
   useSharedExpenses,
-  useExchangeRates,
   useLocale,
   useRequireSession,
   useExpenseHelpers,
@@ -36,13 +35,13 @@ export default function SharedAccountScreen() {
   const locale = useLocale();
   const toast = useToast();
   const session = useRequireSession();
+  const baseCurrency = session.pair.baseCurrency;
   const { getCategory, getCategoryName } = useExpenseHelpers();
 
   const entriesQuery = useSharedEntries();
   const { addEntry } = useSharedAccountActions();
   // 残高は全期間のΣで計算する（当月分だけだと月替わりで過去の共同支出が消えて残高が狂う）。
   const { data: sharedExpenses } = useSharedExpenses();
-  const { data: rates } = useExchangeRates();
 
   const isPaired = session.pair.user2Id !== null;
 
@@ -58,8 +57,8 @@ export default function SharedAccountScreen() {
   const expenses = sharedExpenses ?? [];
 
   const balance = useMemo(
-    () => calculateSharedBalance(entries, expenses, rates ?? []),
-    [entries, expenses, rates]
+    () => calculateSharedBalance(entries, expenses, baseCurrency),
+    [entries, expenses, baseCurrency]
   );
 
   const myDeposits = balance.depositsByUser[session.userId] ?? 0;
@@ -117,7 +116,7 @@ export default function SharedAccountScreen() {
       {
         type: recordType,
         amount: parsed,
-        currency: 'JPY',
+        currency: baseCurrency,
         description: memo.trim() || null,
         transactionDate: dayjs(date).format('YYYY-MM-DD'),
         userId,
@@ -155,14 +154,14 @@ export default function SharedAccountScreen() {
           <Card backgroundColor={colors.coralSoft} style={styles.balanceCard}>
             <Text style={[typography.subhead, { color: colors.textSecondary }]}>{t('sharedAccount.balance')}</Text>
             <Text style={[typography.display, { color: colors.textPrimary }]}>
-              {formatCurrency(balance.balance, 'JPY', locale)}
+              {formatCurrency(balance.balance, baseCurrency, locale)}
             </Text>
             <View style={styles.summaryRow}>
               <Text style={[typography.footnote, { color: colors.textSecondary }]}>
-                {t('sharedAccount.totalDeposits')}: {formatCurrency(balance.totalDeposits, 'JPY', locale)}
+                {t('sharedAccount.totalDeposits')}: {formatCurrency(balance.totalDeposits, baseCurrency, locale)}
               </Text>
               <Text style={[typography.footnote, { color: colors.textSecondary }]}>
-                {t('sharedAccount.totalSpent')}: {formatCurrency(balance.totalSpent, 'JPY', locale)}
+                {t('sharedAccount.totalSpent')}: {formatCurrency(balance.totalSpent, baseCurrency, locale)}
               </Text>
             </View>
           </Card>
@@ -172,16 +171,16 @@ export default function SharedAccountScreen() {
             <Text style={[typography.subhead, { color: colors.textSecondary, marginBottom: spacing.xs }]}>
               {t('sharedAccount.depositBreakdown')}
             </Text>
-            <BreakdownRow label={t('expense.payerSelf')} value={formatCurrency(myDeposits, 'JPY', locale)} colors={colors} />
+            <BreakdownRow label={t('expense.payerSelf')} value={formatCurrency(myDeposits, baseCurrency, locale)} colors={colors} />
             {isPaired ? (
               <BreakdownRow
                 label={session.partner?.displayName ?? t('expense.payerPartner')}
-                value={formatCurrency(partnerDeposits, 'JPY', locale)}
+                value={formatCurrency(partnerDeposits, baseCurrency, locale)}
                 colors={colors}
               />
             ) : null}
             {adjustDeposits !== 0 ? (
-              <BreakdownRow label={t('sharedAccount.adjustment')} value={formatCurrency(adjustDeposits, 'JPY', locale)} colors={colors} />
+              <BreakdownRow label={t('sharedAccount.adjustment')} value={formatCurrency(adjustDeposits, baseCurrency, locale)} colors={colors} />
             ) : null}
           </Card>
 
@@ -263,7 +262,7 @@ export default function SharedAccountScreen() {
               value={amountInput}
               onChangeText={setAmountInput}
               keyboardType="numeric"
-              prefix="￥"
+              prefix={baseCurrency === 'JPY' ? '￥' : baseCurrency}
               autoFocus
             />
 

@@ -8,7 +8,6 @@ export * from './useSharedAccount';
 export * from './useFixedCosts';
 export * from './useBudgets';
 export * from './useNotifications';
-export * from './useExchangeRates';
 export * from './useProfilePair';
 export * from './useLocale';
 export * from './useExpenseHelpers';

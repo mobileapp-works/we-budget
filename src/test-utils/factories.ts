@@ -15,6 +15,9 @@ export function makeExpense(overrides: Partial<Expense> = {}): Expense {
     categoryId: 'cat-1',
     amount: 1000,
     currency: 'JPY',
+    exchangeRate: 1,
+    // 既定はレート1（baseAmount == amount）。外貨ケースは baseAmount を明示的に上書きする。
+    baseAmount: overrides.amount ?? 1000,
     payerUserId: 'user-1',
     isSharedPayment: false,
     settlementId: null,
@@ -38,6 +41,7 @@ export function makePair(overrides: Partial<Pair> = {}): Pair {
     user2Id: 'user-2',
     splitRatioUser1: 50,
     splitRatioUser2: 50,
+    baseCurrency: 'JPY',
     createdAt: '2026-06-01T00:00:00Z',
     updatedAt: '2026-06-01T00:00:00Z',
     deletedAt: null,

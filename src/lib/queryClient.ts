@@ -28,7 +28,6 @@ export const queryKeys = {
   shared: (pairId: string) => ['shared-account', pairId] as const,
   fixedCosts: (pairId: string) => ['fixed-costs', pairId] as const,
   budgets: (pairId: string) => ['budgets', pairId] as const,
-  rates: (pairId: string) => ['exchange-rates', pairId] as const,
   notifications: (userId: string) => ['notifications', userId] as const,
   notificationSettings: (userId: string) => ['notification-settings', userId] as const,
   incomingPairRequests: (pairId: string) => ['pair-requests', 'incoming', pairId] as const,

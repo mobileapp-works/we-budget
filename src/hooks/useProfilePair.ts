@@ -1,7 +1,7 @@
 /** プロフィール更新・ペア操作（承認制ペアリング含む）のフック。 */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { backend } from '@/data';
-import type { ImageUpload } from '@/data';
+import type { ImageUpload, SessionContext } from '@/data';
 import { queryKeys } from '@/lib/queryClient';
 import { useRequireSession } from './useSession';
 import type { PairRequest, Profile, UUID } from '@/types/models';
@@ -71,7 +71,18 @@ export function usePairActions() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.session }),
   });
 
-  return { createInvite, requestPair, respondRequest, cancelRequest, leavePair, updateSplitRatio };
+  // 基準通貨の変更。再換算で全金額が変わるため、セッションの pair を更新しつつ全クエリを無効化する。
+  const setBaseCurrency = useMutation({
+    mutationFn: ({ currency, rate }: { currency: string; rate: number }) =>
+      backend.setBaseCurrency(currency, rate),
+    onSuccess: (pair) => {
+      const current = qc.getQueryData<SessionContext>(queryKeys.session);
+      if (current) qc.setQueryData(queryKeys.session, { ...current, pair });
+      void qc.invalidateQueries();
+    },
+  });
+
+  return { createInvite, requestPair, respondRequest, cancelRequest, leavePair, updateSplitRatio, setBaseCurrency };
 }
 
 /**
