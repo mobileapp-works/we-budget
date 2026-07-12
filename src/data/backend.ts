@@ -171,6 +171,10 @@ export interface Backend {
   // --- 立替精算 ---
   getSettlementBalance(): Promise<SettlementBalance>;
   executeSettlement(): Promise<Settlement>;
+  /** まとめ精算を共同口座から実行（ネット残高ぶんを共同口座から出金し立替者へ払い戻す）。 */
+  executeSettlementFromShared(): Promise<Settlement>;
+  /** 立替1件だけを個別に person-to-person 精算する（分担比率での相手負担分）。 */
+  settleExpense(expenseId: UUID): Promise<Settlement>;
   listSettlements(): Promise<Settlement[]>;
 
   // --- 共同口座 ---

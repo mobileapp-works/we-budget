@@ -26,7 +26,7 @@ export default function SettlementScreen() {
 
   const balanceQuery = useSettlementBalance();
   const settlementsQuery = useSettlements();
-  const { settle } = useSettlementActions();
+  const { settle, settleFromShared } = useSettlementActions();
 
   const isPaired = session.pair.user2Id !== null;
   const balance = balanceQuery.data;
@@ -62,6 +62,29 @@ export default function SettlementScreen() {
     );
   };
 
+  // まとめて共同口座から精算（ネット残高ぶんを共同口座から立替者へ払い戻す）。
+  const confirmSettleFromShared = () => {
+    if (!balance || balance.settlementAmount <= 0) return;
+    Alert.alert(
+      t('settlement.fromSharedConfirmTitle'),
+      t('settlement.fromSharedConfirmBody', {
+        to: nameOf(balance.toUserId),
+        amount: formatCurrency(balance.settlementAmount, balance.currency, locale),
+      }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settlement.settleFromSharedButton'),
+          onPress: () =>
+            settleFromShared.mutate(undefined, {
+              onSuccess: () => toast.show(t('settlement.settled'), 'success'),
+              onError: () => toast.show(t('error.generic'), 'error'),
+            }),
+        },
+      ]
+    );
+  };
+
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('settlement.title')} />
@@ -84,6 +107,14 @@ export default function SettlementScreen() {
                   {formatCurrency(balance.settlementAmount, balance.currency, locale)}
                 </Text>
                 <Button title={t('settlement.settleButton')} onPress={confirmSettle} loading={settle.isPending} />
+                <View style={{ height: spacing.sm }} />
+                <Button
+                  title={t('settlement.settleFromSharedButton')}
+                  variant="secondary"
+                  left={<Ionicons name="wallet-outline" size={18} color={colors.textPrimary} />}
+                  onPress={confirmSettleFromShared}
+                  loading={settleFromShared.isPending}
+                />
               </Card>
             ) : (
               <Card style={styles.balanceCard}>

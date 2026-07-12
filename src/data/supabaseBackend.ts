@@ -461,6 +461,21 @@ export const supabaseBackend: Backend = {
     return toSettlement(data);
   },
 
+  async executeSettlementFromShared() {
+    const sb = requireSupabase();
+    const { pairId } = await context();
+    const { data, error } = await sb.rpc('execute_settlement_from_shared', { p_pair_id: pairId });
+    if (error) throw error;
+    return toSettlement(data);
+  },
+
+  async settleExpense(expenseId: UUID) {
+    const sb = requireSupabase();
+    const { data, error } = await sb.rpc('settle_expense', { p_expense_id: expenseId });
+    if (error) throw error;
+    return toSettlement(data);
+  },
+
   async listSettlements() {
     const sb = requireSupabase();
     const { data, error } = await sb.from('settlements').select('*').order('settled_at', { ascending: false });

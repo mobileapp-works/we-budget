@@ -1,15 +1,15 @@
 /** 支出詳細。表示・編集・削除（どちらのユーザーでも可。削除は確認ダイアログ）。 */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, StateView, CategoryIcon, useCategoryName } from '@/components';
-import { useExpense, useExpenseActions, useExpenseHelpers, useLocale, useReceiptImageUrl, useRequireSession } from '@/hooks';
+import { useExpense, useExpenseActions, useExpenseHelpers, useLocale, useReceiptImageUrl, useRequireSession, useSettlementActions } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
-import { formatCurrency, formatDate } from '@/utils';
+import { formatCurrency, formatDate, calculateExpenseSettlement } from '@/utils';
 import type { UUID } from '@/types/models';
 
 export default function ExpenseDetailScreen() {
@@ -23,6 +23,7 @@ export default function ExpenseDetailScreen() {
 
   const expenseQuery = useExpense(id);
   const { deleteExpense, updateExpense } = useExpenseActions();
+  const { settleExpense } = useSettlementActions();
   const { getCategory, getCategoryName, getPayerLabel } = useExpenseHelpers();
   const resolveName = useCategoryName();
 
@@ -100,6 +101,38 @@ export default function ExpenseDetailScreen() {
     ]);
   };
 
+  // 個別精算(person-to-person): 分担比率での相手負担分。支払者が受け取る側。
+  const individual = useMemo(
+    () => (expense ? calculateExpenseSettlement(expense, session.pair, session.pair.baseCurrency) : null),
+    [expense, session.pair]
+  );
+
+  const canSettleWithPartner = individual !== null;
+
+  // 立替1件を相手と個別精算する（金額・方向は individual に従う）。
+  const confirmSettleWithPartner = () => {
+    if (!expense || !individual) return;
+    Alert.alert(
+      t('settlement.confirmTitle'),
+      t('settlement.confirmBody', {
+        from: recorderName(individual.fromUserId),
+        to: recorderName(individual.toUserId),
+        amount: formatCurrency(individual.amount, individual.currency, locale),
+      }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settlement.settleButton'),
+          onPress: () =>
+            settleExpense.mutate(expense.id, {
+              onSuccess: () => toast.show(t('expense.settledWithPartner'), 'success'),
+              onError: () => toast.show(t('error.generic'), 'error'),
+            }),
+        },
+      ]
+    );
+  };
+
   return (
     <Screen padded={false}>
       <ScreenHeader title={t('expense.detailTitle')} />
@@ -144,11 +177,25 @@ export default function ExpenseDetailScreen() {
             ) : null}
 
             <View style={styles.actions}>
+              {canSettleWithPartner ? (
+                <>
+                  <Button
+                    title={t('expense.settleWithPartner')}
+                    left={<Ionicons name="swap-horizontal-outline" size={18} color={colors.primaryText} />}
+                    onPress={confirmSettleWithPartner}
+                    loading={settleExpense.isPending}
+                  />
+                  <Text style={[typography.footnote, styles.settleHint, { color: colors.textPlaceholder }]}>
+                    {t('expense.settleWithPartnerHint')}
+                  </Text>
+                </>
+              ) : null}
               {canSettleFromShared ? (
                 <>
                   <Button
                     title={t('expense.settleFromShared')}
-                    left={<Ionicons name="wallet-outline" size={18} color={colors.primaryText} />}
+                    variant="secondary"
+                    left={<Ionicons name="wallet-outline" size={18} color={colors.textPrimary} />}
                     onPress={confirmSettleFromShared}
                     loading={updateExpense.isPending}
                   />

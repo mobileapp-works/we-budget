@@ -24,6 +24,7 @@ import {
   roundMoney,
   calculateBudgetUsage,
   calculateSettlementBalance,
+  calculateExpenseSettlement,
   isSettleableExpense,
   newlyReachedBudgetThresholds,
   BUDGET_ALERT_THRESHOLDS,
@@ -653,6 +654,64 @@ export const mockBackend: Backend = {
         e.settlementId = settlement.id;
       }
     }
+    state.settlements.unshift(settlement);
+    return { ...settlement };
+  },
+
+  async executeSettlementFromShared() {
+    await delay();
+    const balance: SettlementBalance = calculateSettlementBalance(activeExpenses(), state.pair, state.pair.baseCurrency);
+    if (balance.settlementAmount <= 0 || !balance.fromUserId || !balance.toUserId) {
+      throw new Error('nothing to settle');
+    }
+    const settlement: Settlement = {
+      id: uid('stl'),
+      pairId: state.pair.id,
+      settledBy: state.currentUserId,
+      amount: balance.settlementAmount,
+      currency: balance.currency,
+      fromUserId: balance.fromUserId,
+      toUserId: balance.toUserId,
+      settledAt: nowIso(),
+    };
+    // execute_settlement と同一条件でスタンプ。
+    for (const e of state.expenses) {
+      if (isSettleableExpense(e, state.pair)) {
+        e.settlementId = settlement.id;
+      }
+    }
+    state.settlements.unshift(settlement);
+    // 共同口座から精算額を出金（立替者へ払い戻し）。当事者は付けない（共同扱い）。
+    state.shared.push({
+      id: uid('sa'),
+      pairId: state.pair.id,
+      type: 'withdrawal',
+      userId: null,
+      amount: balance.settlementAmount,
+      currency: balance.currency,
+      description: '立替精算（共同口座から）',
+      transactionDate: dayjs().format('YYYY-MM-DD'),
+    });
+    return { ...settlement };
+  },
+
+  async settleExpense(expenseId: UUID) {
+    await delay();
+    const expense = state.expenses.find((e) => e.id === expenseId);
+    if (!expense) throw new Error('expense not found');
+    const result = calculateExpenseSettlement(expense, state.pair, state.pair.baseCurrency);
+    if (!result) throw new Error('not settleable');
+    const settlement: Settlement = {
+      id: uid('stl'),
+      pairId: state.pair.id,
+      settledBy: state.currentUserId,
+      amount: result.amount,
+      currency: result.currency,
+      fromUserId: result.fromUserId,
+      toUserId: result.toUserId,
+      settledAt: nowIso(),
+    };
+    expense.settlementId = settlement.id;
     state.settlements.unshift(settlement);
     return { ...settlement };
   },

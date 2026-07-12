@@ -1,4 +1,4 @@
-import { calculateSettlementBalance, isSettleableExpense } from './settlement';
+import { calculateSettlementBalance, isSettleableExpense, calculateExpenseSettlement } from './settlement';
 import { makeExpense, makePair } from '@/test-utils/factories';
 
 describe('calculateSettlementBalance', () => {
@@ -161,5 +161,89 @@ describe('isSettleableExpense', () => {
     expect(result.settlementAmount).toBe(0); // 3000 vs 3000 で精算不要
     const stamped = expenses.filter((e) => isSettleableExpense(e, pair));
     expect(stamped).toHaveLength(2); // 全支出が baseAmount を持つのでスタンプ対象
+  });
+});
+
+describe('calculateExpenseSettlement', () => {
+  it('50:50で user1 が1000立替 → user2 が500払う（支払者が受け取る側）', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 1000 });
+    const r = calculateExpenseSettlement(e, makePair());
+    expect(r).not.toBeNull();
+    expect(r!.amount).toBe(500);
+    expect(r!.fromUserId).toBe('user-2'); // 相手が払う
+    expect(r!.toUserId).toBe('user-1'); // 支払者が受け取る
+    expect(r!.currency).toBe('JPY');
+  });
+
+  it('50:50で user2 が1000立替 → user1 が500払う（方向が反転）', () => {
+    const e = makeExpense({ payerUserId: 'user-2', amount: 1000 });
+    const r = calculateExpenseSettlement(e, makePair());
+    expect(r!.amount).toBe(500);
+    expect(r!.fromUserId).toBe('user-1');
+    expect(r!.toUserId).toBe('user-2');
+  });
+
+  it('70:30で user1 立替1000 → 相手(user2)負担分は30% = 300', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 1000 });
+    const r = calculateExpenseSettlement(e, makePair({ splitRatioUser1: 70, splitRatioUser2: 30 }));
+    expect(r!.amount).toBe(300);
+    expect(r!.fromUserId).toBe('user-2');
+  });
+
+  it('70:30で user2 立替1000 → 相手(user1)負担分は70% = 700', () => {
+    const e = makeExpense({ payerUserId: 'user-2', amount: 1000 });
+    const r = calculateExpenseSettlement(e, makePair({ splitRatioUser1: 70, splitRatioUser2: 30 }));
+    expect(r!.amount).toBe(700);
+    expect(r!.fromUserId).toBe('user-1');
+    expect(r!.toUserId).toBe('user-2');
+  });
+
+  it('外貨は baseAmount で計算し、基準通貨で返す', () => {
+    // user2 が $20 立替（baseAmount=3000）、50:50 → user1 が1500円払う
+    const e = makeExpense({ payerUserId: 'user-2', amount: 20, currency: 'USD', exchangeRate: 150, baseAmount: 3000 });
+    const r = calculateExpenseSettlement(e, makePair(), 'JPY');
+    expect(r!.amount).toBe(1500);
+    expect(r!.fromUserId).toBe('user-1');
+    expect(r!.currency).toBe('JPY');
+  });
+
+  it('精算済みは null', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 1000, settlementId: 'stl-1' });
+    expect(calculateExpenseSettlement(e, makePair())).toBeNull();
+  });
+
+  it('共同口座払いは null', () => {
+    const e = makeExpense({ payerUserId: null, isSharedPayment: true, amount: 1000 });
+    expect(calculateExpenseSettlement(e, makePair())).toBeNull();
+  });
+
+  it('退会者(payerUserId=null)の個人払いは null', () => {
+    const e = makeExpense({ payerUserId: null, isSharedPayment: false, amount: 1000 });
+    expect(calculateExpenseSettlement(e, makePair())).toBeNull();
+  });
+
+  it('ソロモード(user2未設定)は null', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 1000 });
+    expect(calculateExpenseSettlement(e, makePair({ user2Id: null }))).toBeNull();
+  });
+
+  it('相手負担分が丸めて0なら null（精算不要）', () => {
+    const e = makeExpense({ payerUserId: 'user-1', amount: 0, baseAmount: 0 });
+    expect(calculateExpenseSettlement(e, makePair())).toBeNull();
+  });
+
+  it('個別精算はネット残高と整合する（両者1000ずつ立替→各自が相手に500）', () => {
+    const pair = makePair();
+    const eA = makeExpense({ payerUserId: 'user-1', amount: 1000 });
+    const eB = makeExpense({ payerUserId: 'user-2', amount: 1000 });
+    // まとめ精算ではネット0
+    expect(calculateSettlementBalance([eA, eB], pair).settlementAmount).toBe(0);
+    // 個別だと user2→user1 に500、user1→user2 に500（相殺してネット0）
+    const rA = calculateExpenseSettlement(eA, pair)!;
+    const rB = calculateExpenseSettlement(eB, pair)!;
+    expect(rA.amount).toBe(500);
+    expect(rA.fromUserId).toBe('user-2');
+    expect(rB.amount).toBe(500);
+    expect(rB.fromUserId).toBe('user-1');
   });
 });
