@@ -1,7 +1,7 @@
 /** レシートOCR（端末内） — 画像URI → 端末内OCR → 金額・店名・日付の抽出。 */
 import { useMutation } from '@tanstack/react-query';
 import { recognizeReceiptText } from '@/lib/ocr';
-import { parseReceiptText } from '@/utils';
+import { parseReceiptCandidates } from '@/utils';
 import type { OcrResult } from '@/types/models';
 
 /**
@@ -11,8 +11,8 @@ import type { OcrResult } from '@/types/models';
 export function useReceiptOcr() {
   return useMutation<OcrResult, Error, string>({
     mutationFn: async (imageUri: string) => {
-      const rawText = await recognizeReceiptText(imageUri);
-      return parseReceiptText(rawText);
+      const texts = await recognizeReceiptText(imageUri);
+      return parseReceiptCandidates(texts);
     },
   });
 }

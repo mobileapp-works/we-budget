@@ -27,6 +27,8 @@ function normalizeLine(line: string): string {
     line
       .replace(/[０-９Ａ-Ｚａ-ｚ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
       .replace(/￥/g, '¥')
+      // バックスラッシュを¥と誤読しがち（\1,200）。数字が続くときだけ¥へ寄せる。
+      .replace(/[\\＼﹨](?=\s?[\dOoIl|])/g, '¥')
       .replace(/[：]/g, ':')
       .replace(/[．]/g, '.')
       .replace(/[，、]/g, ',')
@@ -42,6 +44,21 @@ function fixCurrencyMisreads(line: string): string {
   return line.replace(/¥\s*[\dOoIl|,]+/g, (token) =>
     token.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1')
   );
+}
+
+/**
+ * 桁区切りに紛れ込んだ空白を除去して金額を復元する（誤読の最大要因）。
+ * ML Kit は「1,200」を左右別断片（"1," と "200" 等）で返すことがあり、
+ * 行再構成（reconstructRows）で空白連結されると「1, 200」「1 200」になる。
+ * これを放置すると桁区切りとして解釈されず 200 だけ拾ってしまう。
+ * - カンマ前後の空白を詰める:「1, 200」「1 ,200」→「1,200」（連続グループも）。
+ * - 通貨記号直後の空白区切り3桁も桁区切りへ:「¥1 200」→「¥1,200」。
+ *   別々の価格（例「150 300」）を誤結合しないよう、通貨記号アンカーがある場合のみ補修する。
+ */
+function repairThousands(line: string): string {
+  return line
+    .replace(/(\d)\s*,\s*(?=\d{3}\b)/g, '$1,')
+    .replace(/([¥$]\s?\d{1,3})\s+(\d{3})(?=\D|$)/g, '$1,$2');
 }
 
 // ---------------------------------------------------------------------------
@@ -71,8 +88,8 @@ function stripNonAmountDigits(line: string): string {
       .replace(/[@＠]\s*[\d,]+/g, ' ')
       .replace(/[x×]\s*\d+\b/gi, ' ')
       .replace(/\d+\s*[点個](?![\d])/g, ' ')
-      // マイナス金額（値引き明細）は合計候補にしない
-      .replace(/[-−▲]\s*¥?\s*[\d,]+(?:\.\d{1,2})?/g, ' ')
+      // マイナス金額（値引き・返品明細）は合計候補にしない（▲△は日本のレシートの負記号）
+      .replace(/[-−－▲△]\s*¥?\s*[\d,]+(?:\.\d{1,2})?/g, ' ')
   );
 }
 
@@ -119,19 +136,44 @@ type LineKind =
   | 'ignore' // ポイント残高など金額と無関係な行
   | 'item'; // 上記以外（明細行など）
 
-/** 行の役割を分類する（先に判定したものが勝つ。順序に意味がある）。 */
+/**
+ * 行の役割を分類する（先に判定したものが勝つ。順序に意味がある）。
+ * 日英の実レシートで頻出する表記ゆれを網羅する。判定順は
+ *   値引き → 内訳 → 無関係 → 預り → 釣り → 小計 → 合計 → 税 → 支払手段
+ * とし、紛らわしい語（例「小計」より先に「合計」を見ない）を取りこぼさない。
+ */
 function classifyLine(lower: string): LineKind {
-  if (/割引|値引|割戻|クーポン|discount|\boff\b/.test(lower)) return 'discount';
+  // 値引き・返品（金額は負。合計候補にしない）
+  if (/割引|値引|割戻|ねび|返品|クーポン|discount|\boff\b|▲|△/.test(lower)) return 'discount';
+  // 税率内訳・課税対象の部分和（合計ではない）
   if (/[%％]\s*対象|課税対象|対象額|対象計/.test(lower)) return 'breakdown';
-  if (/ポイント|\bpoints?\b|残高/.test(lower)) return 'ignore';
-  if (/お?預か?り|預り/.test(lower)) return 'deposit';
-  if (/おつり|お?釣り?|\bchange\b/.test(lower)) return 'change';
-  if (/小\s*計|sub\s*total|税抜/.test(lower)) return 'subtotal';
-  if (/合\s*計|会計|買\s*上|総額|請求|現計|税込|\btotal\b|amount\s+due|balance\s+due/.test(lower)) {
+  // 金額と無関係（ポイント・残高・マイル・有効期限など）
+  if (/ポイント|\bpoints?\b|残高|マイル|スタンプ|繰越|有効期限|還元/.test(lower)) return 'ignore';
+  // 預り・入金（現金お預り・入金 含む）
+  if (/お?預か?り|預り|入金|お預け/.test(lower)) return 'deposit';
+  // 釣り
+  if (/おつり|お?釣り?|釣銭|\bchange\b/.test(lower)) return 'change';
+  // 小計・税抜（合計より先に判定する）
+  if (/小\s*計|sub\s*-?\s*total|税抜|税別|課税計/.test(lower)) return 'subtotal';
+  // 合計（最有力）: 合計/会計/請求/買上計/総額・総計/現計/税込合計/お支払金額/領収額/ご利用金額 と英語各種
+  if (
+    /合\s*計|お?会\s*計|ご?請\s*求(?:金?額)?|買\s*上\s*(?:げ)?(?:\s*(?:計|合計|金額))?|総\s*(?:額|計|合計)|現\s*計|税込(?:\s*(?:合計|価格|金額|計))?|お?支\s*払(?:い)?\s*(?:合計|金額|総額|計|額)|領収\s*(?:金額|額)|ご?利用\s*金額/.test(
+      lower
+    ) ||
+    /\bgrand\s*total\b|\btotal\b|amount\s+(?:due|paid|payable)|balance\s+due|total\s+due|total\s+to\s+pay|order\s+total/.test(
+      lower
+    )
+  ) {
     return 'total';
   }
-  if (/消費税|内税|外税|税額|\btax\b/.test(lower)) return 'tax';
-  if (/現金|クレジット|カード|電子マネー|\bcash\b|\bcard\b|paypay|ペイペイ/.test(lower)) {
+  // 消費税（内税・外税・軽減/標準税率）
+  if (/消費税|内税|外税|税額|\btax\b|\bvat\b|\bgst\b|\bhst\b/.test(lower)) return 'tax';
+  // 支払手段（合計の後に判定。現金/カード/電子マネー/各種○○ペイ）
+  if (
+    /現金|クレジット|カード|デビット|電子マネー|交通系|suica|pasmo|icoca|nanaco|waon|楽天edy|quicpay|コード決済|バーコード決済|ペイ|pay\s?pay|d払い|au\s?pay|商品券|ギフト|クオカード|\bcash\b|\bcard\b|\bcredit\b|\bdebit\b|\bvisa\b|master|amex|\btender(?:ed)?\b|\bpaid\b/.test(
+      lower
+    )
+  ) {
     return 'tender';
   }
   return 'item';
@@ -152,17 +194,24 @@ function isAmountOnlyLine(line: string): boolean {
 
 /**
  * 合計金額を推定する。信頼度の高い順に:
- * 1) 合計行の金額（小計+税と一致する候補があればそれを優先）
+ * 1) 合計行の金額（小計+税・預り−釣りと一致する候補があれば最優先。合致しなければ小計以上の最大値）
  * 2) 預り − 釣り（レシートの恒等式。合計行が読めなくても復元できる）
  * 3) 小計 + 税
  * 4) 支払手段行（現金・カード等には合計額が載ることが多い）
- * 5) 価格らしい明細の最大額 → 明細中の最大値
+ * 5) 価格らしき金額が1種類だけ（駐車券など単一金額のレシート）ならそれ
+ *
+ * ここで確信が持てない（明細金額が複数あるのに合計を特定できない）ときは、
+ * 誤った額を自動入力するより **null** を返す。合計はこのアプリの肝であり、
+ * でたらめを埋めるくらいなら「読み取れませんでした（ocrNoAmount）」と案内して
+ * ユーザーに手入力を促すほうが信頼できる。
+ *
+ * confidence は採用根拠の強さ（3=検算一致/恒等式・2=合計行や支払手段・1=単一金額・0=不明）。
+ * 複数のOCRテキスト候補から最良を選ぶ（parseReceiptCandidates）ための指標。
  */
-function parseAmount(lines: string[]): number | null {
+function analyzeAmount(lines: string[]): { amount: number | null; confidence: number } {
   const totals: number[] = [];
   const tenders: number[] = [];
   const prices: number[] = [];
-  const items: number[] = [];
   const taxes: number[] = [];
   let subtotal: number | null = null;
   let deposit: number | null = null;
@@ -209,31 +258,48 @@ function parseAmount(lines: string[]): number | null {
         tenders.push(maxOnLine);
         break;
       default:
-        items.push(maxOnLine);
         if (looksLikePrice(line)) prices.push(maxOnLine);
     }
   }
 
   // 小計+税の期待値（税行が複数=軽減税率のときは各値と合算の両方を試す）
+  const sub = subtotal;
   const expectedTotals: number[] = [];
-  if (subtotal !== null && taxes.length > 0) {
-    for (const tax of taxes) expectedTotals.push(round2(subtotal + tax));
-    if (taxes.length > 1) expectedTotals.push(round2(subtotal + taxes.reduce((a, b) => a + b, 0)));
+  if (sub !== null && taxes.length > 0) {
+    for (const tax of taxes) expectedTotals.push(round2(sub + tax));
+    if (taxes.length > 1) expectedTotals.push(round2(sub + taxes.reduce((a, b) => a + b, 0)));
   }
 
+  // 合計を「検算」できる独立した値: 小計+税 と 預り−釣り。
+  // 合計行の候補がこれらのどれかと一致すれば、誤読でない確度が非常に高い。
+  // 「お預り」ラベルが無く現金＋おつりだけの形式もあるため、預りが取れないときは
+  // 支払手段（現金）の額を預り相当として恒等式に使う（現金 − おつり = 合計）。
+  const depositCandidate =
+    deposit ?? (change !== null && tenders.length > 0 ? Math.max(...tenders) : null);
+  const depositMinusChange =
+    depositCandidate !== null && change !== null && depositCandidate > change
+      ? round2(depositCandidate - change)
+      : null;
+  const crossChecks = [...expectedTotals];
+  if (depositMinusChange !== null) crossChecks.push(depositMinusChange);
+
   if (totals.length > 0) {
-    // 合計行の候補のうち、小計+税と一致するものがあれば最優先（誤読の最大値を避ける）
-    for (const expected of expectedTotals) {
-      if (totals.some((t) => nearlyEqual(t, expected))) return expected;
+    // 1) 検算値（小計+税 / 預り−釣り）と一致する合計候補を最優先（誤読の最大値・部分和を避ける）。
+    for (const expected of crossChecks) {
+      if (totals.some((t) => nearlyEqual(t, expected))) return { amount: expected, confidence: 3 };
     }
-    return Math.max(...totals);
+    // 2) 小計が分かるなら、小計を下回る合計候補は誤読とみなして除外する（合計 ≥ 小計）。
+    const plausible = sub !== null ? totals.filter((t) => t >= sub - 0.005) : totals;
+    return { amount: Math.max(...(plausible.length > 0 ? plausible : totals)), confidence: 2 };
   }
-  if (deposit !== null && change !== null && deposit > change) return round2(deposit - change);
-  if (expectedTotals.length === 1) return expectedTotals[0]!;
-  if (tenders.length > 0) return Math.max(...tenders);
-  if (prices.length > 0) return Math.max(...prices);
-  if (items.length > 0) return Math.max(...items);
-  return null;
+  if (depositMinusChange !== null) return { amount: depositMinusChange, confidence: 3 };
+  if (expectedTotals.length === 1) return { amount: expectedTotals[0]!, confidence: 3 };
+  if (tenders.length > 0) return { amount: Math.max(...tenders), confidence: 2 };
+  // ここから先は確信が持てない。金額が1種類だけ（単一金額のレシート）ならそれを総額とみなすが、
+  // 複数の価格があるのに合計を特定できないときは推測せず null を返す（誤入力より未入力）。
+  const distinctPrices = new Set(prices);
+  if (distinctPrices.size === 1) return { amount: prices[0]!, confidence: 1 };
+  return { amount: null, confidence: 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -334,20 +400,46 @@ function parseStoreName(lines: string[]): string | null {
 // エントリポイント
 // ---------------------------------------------------------------------------
 
+/** 1つのテキストを解析し、OcrResult に採用根拠の強さ（confidence）を添えて返す。 */
+function analyzeReceipt(rawText: string): OcrResult & { confidence: number } {
+  const rawLines = rawText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  const normLines = rawLines.map((l) => repairThousands(fixCurrencyMisreads(normalizeLine(l))));
+  const { amount, confidence } = analyzeAmount(normLines);
+  return {
+    amount,
+    storeName: parseStoreName(rawLines),
+    date: parseDate(normLines.join('\n')),
+    rawText,
+    confidence,
+  };
+}
+
 /**
  * レシート全文テキストを解析して構造化する。
  * 抽出できない項目は null。rawText はそのまま保持する。
  */
 export function parseReceiptText(rawText: string): OcrResult {
-  const rawLines = rawText
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-  const normLines = rawLines.map((l) => fixCurrencyMisreads(normalizeLine(l)));
-  return {
-    amount: parseAmount(normLines),
-    storeName: parseStoreName(rawLines),
-    date: parseDate(normLines.join('\n')),
-    rawText,
-  };
+  const r = analyzeReceipt(rawText);
+  return { amount: r.amount, storeName: r.storeName, date: r.date, rawText: r.rawText };
+}
+
+/**
+ * 複数のOCRテキスト候補（座標再構成版・ML Kit標準版など）を解析し、
+ * 合計の採用根拠が最も強い（confidence が高い）結果を選ぶ。
+ * レシートは列組みで、座標再構成が効くレシートと標準の読み順が正しいレシートが混在するため、
+ * 両方を解析して良い方を採る（端末内・追加コストは解析2回ぶんのみ）。
+ * 同点なら先頭（座標再構成版）を優先する。
+ */
+export function parseReceiptCandidates(texts: string[]): OcrResult {
+  const candidates = texts.map((t) => (t ?? '').trim()).filter((t) => t.length > 0);
+  if (candidates.length === 0) return { amount: null, storeName: null, date: null, rawText: '' };
+  let best = analyzeReceipt(candidates[0]!);
+  for (let i = 1; i < candidates.length; i++) {
+    const r = analyzeReceipt(candidates[i]!);
+    if (r.confidence > best.confidence) best = r;
+  }
+  return { amount: best.amount, storeName: best.storeName, date: best.date, rawText: best.rawText };
 }

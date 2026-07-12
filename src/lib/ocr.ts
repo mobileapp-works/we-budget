@@ -34,21 +34,26 @@ function sampleReceiptText(): string {
 }
 
 /**
- * 画像URI（file://...）を端末内OCRにかけ、読み順（上→下、左→右）に整形した
- * 全文テキストを返す。抽出（金額/店名/日付）は呼び出し側の parseReceiptText が担う。
+ * 画像URI（file://...）を端末内OCRにかけ、テキスト候補の配列を返す。
+ * 「座標から再構成した物理行」版と「ML Kit の並び順」版の両方を返し、
+ * 抽出（parseReceiptCandidates）側が合計の確度が高い方を選ぶ。
+ * レシートによって座標再構成が効くもの・標準の読み順が正しいものが分かれるため、両にらみにする。
  */
-export async function recognizeReceiptText(imageUri: string): Promise<string> {
+export async function recognizeReceiptText(imageUri: string): Promise<string[]> {
   try {
     // Japanese モデルは和文＋ラテン文字の両方を認識する。
     const result = await TextRecognition.recognize(imageUri, TextRecognitionScript.JAPANESE);
     const lines: OcrTextLine[] = result.blocks.flatMap((block) =>
       block.lines.map((line) => ({ text: line.text, frame: line.frame }))
     );
-    // 座標が取れないとき（環境差）は ML Kit の並び順テキストへフォールバック。
-    return reconstructRows(lines) ?? result.text ?? '';
+    // 座標が取れないとき（環境差）は reconstructRows が null を返すので標準テキストのみになる。
+    const reconstructed = reconstructRows(lines) ?? '';
+    const plain = result.text ?? '';
+    const candidates = [reconstructed, plain].map((t) => t.trim()).filter((t) => t.length > 0);
+    return Array.from(new Set(candidates)); // 同一テキストは重複除去
   } catch (e) {
     // Expo Go 等でネイティブ未リンクの場合、開発時のみサンプルで動かす（本番ビルドでは実際に読み取る）。
-    if (__DEV__) return sampleReceiptText();
+    if (__DEV__) return [sampleReceiptText()];
     throw e;
   }
 }

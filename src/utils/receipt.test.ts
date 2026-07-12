@@ -1,4 +1,4 @@
-import { parseReceiptText } from './receipt';
+import { parseReceiptText, parseReceiptCandidates } from './receipt';
 import { reconstructRows } from './ocrRows';
 
 // 典型的な日本語レシート（コンビニ想定）
@@ -44,13 +44,35 @@ describe('parseReceiptText - 金額', () => {
     expect(parseReceiptText('ご合計 1,480円').amount).toBe(1480);
   });
 
-  it('合計語が無ければ価格らしい最大額をフォールバック採用', () => {
+  it('合計語が無く価格が1種類だけならそれを採用（単一金額のレシート）', () => {
+    expect(parseReceiptText('コーヒー ￥480').amount).toBe(480);
+  });
+
+  it('合計語が無く価格が複数あるときは推測せず null（でたらめより未入力）', () => {
     const text = 'コーヒー ￥480\nケーキ ￥620';
-    expect(parseReceiptText(text).amount).toBe(620);
+    expect(parseReceiptText(text).amount).toBeNull();
   });
 
   it('金額が全く無ければ null', () => {
     expect(parseReceiptText('ありがとうございました').amount).toBeNull();
+  });
+});
+
+describe('parseReceiptText - 金額（桁区切りの空白補修）', () => {
+  it('カンマ後に空白が入っても桁区切りを復元（合計 ¥1, 200 → 1200）', () => {
+    expect(parseReceiptText('合計 ¥1, 200').amount).toBe(1200);
+  });
+
+  it('カンマ前に空白が入っても復元（合計 ¥1 ,200 → 1200）', () => {
+    expect(parseReceiptText('合計 ¥1 ,200').amount).toBe(1200);
+  });
+
+  it('通貨記号直後の空白区切り3桁も桁区切りへ（合計 ¥1 200 → 1200）', () => {
+    expect(parseReceiptText('合計 ¥1 200').amount).toBe(1200);
+  });
+
+  it('百万台（3グループ）も空白混じりで復元（合計 ¥1, 234, 567）', () => {
+    expect(parseReceiptText('合計 ¥1, 234, 567').amount).toBe(1234567);
   });
 });
 
@@ -110,6 +132,17 @@ describe('parseReceiptText - 金額（クロス検証・復元）', () => {
     expect(parseReceiptText(text).amount).toBe(302);
   });
 
+  it('合計候補が複数でも 預り−釣り と一致する候補を優先（税行が無くても検算できる）', () => {
+    const text = '合計 ¥8,020\n合計 ¥302\nお預り ¥1,000\nおつり ¥698';
+    expect(parseReceiptText(text).amount).toBe(302);
+  });
+
+  it('合計候補が小計を下回る誤読は捨て、小計以上の候補を採る', () => {
+    // 「合計 ¥302」が「¥30」と桁欠けした候補が混じっても、小計280以上の302を採用
+    const text = '小計 ¥280\n合計 ¥30\n合計 ¥302';
+    expect(parseReceiptText(text).amount).toBe(302);
+  });
+
   it('合計行が読めなくても 預り−釣り で復元する', () => {
     expect(parseReceiptText('お預り ¥1,000\nおつり ¥698').amount).toBe(302);
   });
@@ -124,6 +157,163 @@ describe('parseReceiptText - 金額（クロス検証・復元）', () => {
 
   it('支払手段行（クレジット等）は合計が無いときの候補になる', () => {
     expect(parseReceiptText('クレジットカード ¥1,540').amount).toBe(1540);
+  });
+});
+
+describe('parseReceiptText - 合計ラベルの表記ゆれ（日英）', () => {
+  it.each([
+    ['お会計 ¥1,320', 1320],
+    ['ご請求額 ¥5,000', 5000],
+    ['ご請求金額 8,250円', 8250],
+    ['お支払金額 ¥759', 759],
+    ['お支払い合計 ¥1,540', 1540],
+    ['お買上げ計 ¥980', 980],
+    ['税込合計 ¥2,970', 2970],
+    ['ご利用金額 ¥3,300', 3300],
+    ['領収金額 ¥1,100', 1100],
+    ['Grand Total $42.00', 42],
+    ['Amount Due ¥1,200', 1200],
+    ['Total to pay £8.40', 8.4],
+  ])('「%s」から合計を拾う', (line, expected) => {
+    expect(parseReceiptText(line).amount).toBe(expected);
+  });
+});
+
+describe('parseReceiptText - 恒等式による復元', () => {
+  it('現金−おつり（お預りラベルが無い形式）で合計を復元', () => {
+    const text = 'ラーメン ¥800\n餃子 ¥400\n現金 ¥1,500\nおつり ¥300';
+    expect(parseReceiptText(text).amount).toBe(1200);
+  });
+
+  it('列分断で桁区切りが割れても復元（合計 + "1," + "320" → 1320）', () => {
+    const frame = (top: number, left: number) => ({ top, left, width: 100, height: 20 });
+    const rows = reconstructRows([
+      { text: '合計', frame: frame(200, 10) },
+      { text: '1,', frame: frame(200, 300) },
+      { text: '320', frame: frame(200, 330) },
+    ]);
+    expect(parseReceiptText(rows!).amount).toBe(1320);
+  });
+});
+
+describe('parseReceiptText - 実レシート形式（統合）', () => {
+  it('スーパー（軽減税率・お買上点数・預り釣り）→ 合計 829', () => {
+    const text = `マルエツ 新宿店
+2026年7月4日(土) 18:05
+牛乳 ￥218 軽
+食パン ￥158 軽
+ビール ￥385
+お買上点数 3点
+小計 ￥761
+（8%対象 ￥376）
+（10%対象 ￥385）
+消費税等 ￥68
+合計 ￥829
+お預り ￥1,000
+お釣り ￥171`;
+    expect(parseReceiptText(text).amount).toBe(829);
+  });
+
+  it('飲食店（サービス料込み・お会計）→ 4356（小計+税と不一致でも合計行を採用）', () => {
+    const text = `トラットリア ベッラ
+2026/07/04
+パスタ 1,200
+ピザ 1,800
+ドリンク 600
+小計 3,600
+サービス料 360
+消費税 396
+お会計 4,356`;
+    expect(parseReceiptText(text).amount).toBe(4356);
+  });
+
+  it('ドラッグストア（外税・ポイント・現金）→ 600', () => {
+    const text = `ウエルシア 渋谷
+2026-07-04
+マスク ¥298
+のど飴 ¥248
+小計 ¥546
+外税 ¥54
+合計 ¥600
+Tポイント 6P
+現金 ¥600`;
+    expect(parseReceiptText(text).amount).toBe(600);
+  });
+
+  it('カフェ（合計行なし・お支払い金額を小計+税で検算）→ 759', () => {
+    const text = `スターバックス コーヒー
+2026年7月4日
+ドリップ コーヒー ￥390
+スコーン ￥300
+小計 ￥690
+消費税(10%) ￥69
+お支払い金額 ￥759`;
+    expect(parseReceiptText(text).amount).toBe(759);
+  });
+
+  it('居酒屋（税込合計・現金−おつりで二重検算）→ 1925', () => {
+    const text = `居酒屋 とり
+2026/07/04
+生ビール 550
+枝豆 400
+焼き鳥 800
+税込合計 1,925
+現金 2,000
+おつり 75`;
+    expect(parseReceiptText(text).amount).toBe(1925);
+  });
+
+  it('英語レシート（Tip込み・Total を小計+税で確定、Amount Paid に釣られない）→ 10.36', () => {
+    const text = `BLUE BOTTLE COFFEE
+04/07/2026
+Latte $5.50
+Croissant $4.00
+Subtotal $9.50
+Tax $0.86
+Total $10.36
+Tip $2.00
+Amount Paid $12.36`;
+    expect(parseReceiptText(text).amount).toBe(10.36);
+  });
+
+  it('英語レシート（Amount Due・小計なし・£）→ 2.00', () => {
+    const text = `CORNER SHOP
+Bananas £1.20
+Water £0.80
+Amount Due £2.00
+Card £2.00`;
+    expect(parseReceiptText(text).amount).toBe(2.0);
+  });
+});
+
+describe('parseReceiptCandidates - 複数テキスト候補から最良を選ぶ', () => {
+  it('確度の高い候補（検算一致の合計）を採用する', () => {
+    const weak = 'おにぎり ¥150\nお茶 ¥130'; // 合計不明 → null（確度0）
+    const strong = '小計 ¥280\n消費税 ¥22\n合計 ¥302'; // 小計+税=合計（確度3）
+    expect(parseReceiptCandidates([weak, strong]).amount).toBe(302);
+    // 順序が逆でも結果は同じ
+    expect(parseReceiptCandidates([strong, weak]).amount).toBe(302);
+  });
+
+  it('列分断で座標再構成が末尾3桁だけ拾っても、標準テキスト側の正しい合計を採用', () => {
+    const reconstructed = '合計 200'; // 桁が割れて 200 しか拾えなかった想定（確度2）
+    const plain = '小計 ¥1,100\n消費税 ¥100\n合計 ¥1,200'; // 検算一致（確度3）
+    expect(parseReceiptCandidates([reconstructed, plain]).amount).toBe(1200);
+  });
+
+  it('同点なら先頭（座標再構成版）を優先する', () => {
+    expect(parseReceiptCandidates(['合計 ¥300', '合計 ¥400']).amount).toBe(300);
+  });
+
+  it('候補が空なら全項目 null', () => {
+    const r = parseReceiptCandidates(['', '   ']);
+    expect(r.amount).toBeNull();
+    expect(r.storeName).toBeNull();
+    expect(r.rawText).toBe('');
+  });
+
+  it('1候補なら parseReceiptText と同じ結果', () => {
+    expect(parseReceiptCandidates([JP_RECEIPT]).amount).toBe(parseReceiptText(JP_RECEIPT).amount);
   });
 });
 
