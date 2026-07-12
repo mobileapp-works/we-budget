@@ -106,7 +106,7 @@ export default function CategoriesScreen() {
         if (!c.isDefault) patch.name = name.trim();
         await updateCategory.mutateAsync({ id: c.id, patch });
       }
-      toast.show(t('expense.saved'), 'success');
+      toast.show(t('common.saved'), 'success');
       close();
     } catch {
       toast.show(t('error.generic'), 'error');
@@ -159,7 +159,7 @@ export default function CategoriesScreen() {
                 <Pressable
                   onPress={() => openEdit(c)}
                   accessibilityRole="button"
-                  accessibilityLabel={t('categories.edit')}
+                  accessibilityLabel={`${t('categories.edit')}: ${resolveName(c)}`}
                   style={styles.rowMain}
                 >
                   <CategoryIcon icon={c.icon} color={c.color} size={36} />
@@ -171,7 +171,7 @@ export default function CategoriesScreen() {
                 <Pressable
                   onPress={() => confirmHide(c)}
                   accessibilityRole="button"
-                  accessibilityLabel={t('categories.hide')}
+                  accessibilityLabel={`${t('categories.hide')}: ${resolveName(c)}`}
                   hitSlop={8}
                   style={styles.rowAction}
                 >
@@ -202,7 +202,7 @@ export default function CategoriesScreen() {
                     <Pressable
                       onPress={() => restore(c)}
                       accessibilityRole="button"
-                      accessibilityLabel={t('categories.show')}
+                      accessibilityLabel={`${t('categories.show')}: ${resolveName(c)}`}
                       hitSlop={8}
                       style={styles.rowAction}
                     >
@@ -275,11 +275,12 @@ export default function CategoriesScreen() {
               {/* 色選択 */}
               <Text style={[typography.subhead, { color: colors.textSecondary, marginBottom: spacing.xs, marginTop: spacing.sm }]}>{t('categories.color')}</Text>
               <View style={styles.colorRow}>
-                {COLOR_CHOICES.map((c) => (
+                {COLOR_CHOICES.map((c, i) => (
                   <Pressable
                     key={c}
                     onPress={() => setColor(c)}
                     accessibilityRole="button"
+                    accessibilityLabel={`${t('categories.color')} ${i + 1}`}
                     accessibilityState={{ selected: color === c }}
                     style={[styles.colorDot, { backgroundColor: c, borderColor: color === c ? colors.textPrimary : 'transparent' }]}
                   />

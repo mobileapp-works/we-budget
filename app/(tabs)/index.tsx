@@ -74,6 +74,12 @@ export default function HomeScreen() {
           onRetry={() => expensesQuery.refetch()}
           emptyComponent={
             <View style={styles.emptyWrap}>
+              {/* ソロは支出0でもペア招待が埋もれないよう、空状態でも導線を出す。 */}
+              {!isPaired ? (
+                <View style={{ marginBottom: spacing.md }}>
+                  <InvitePartnerCard onPress={() => router.push('/pairing')} />
+                </View>
+              ) : null}
               <EmptyState
                 icon="receipt-outline"
                 title={t('home.emptyTitle')}
@@ -104,14 +110,7 @@ export default function HomeScreen() {
               />
             ) : null
           ) : (
-            <Card onPress={() => router.push('/pairing')} accessibilityLabel={t('pairing.invitePartner')}>
-              <View style={styles.row}>
-                <Ionicons name="person-add-outline" size={22} color={colors.primary} />
-                <Text style={[typography.body, { color: colors.textPrimary, marginLeft: spacing.sm }]}>
-                  {t('home.invitePartnerCta')}
-                </Text>
-              </View>
-            </Card>
+            <InvitePartnerCard onPress={() => router.push('/pairing')} />
           )}
 
           {/* 予算進捗 */}
@@ -148,6 +147,22 @@ export default function HomeScreen() {
         </StateView>
       </ScrollView>
     </Screen>
+  );
+}
+
+/** パートナー招待への導線カード（ソロモードで表示）。 */
+function InvitePartnerCard({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  return (
+    <Card onPress={onPress} accessibilityLabel={t('pairing.invitePartner')}>
+      <View style={styles.row}>
+        <Ionicons name="person-add-outline" size={22} color={colors.primary} />
+        <Text style={[typography.body, { color: colors.textPrimary, marginLeft: spacing.sm }]}>
+          {t('home.invitePartnerCta')}
+        </Text>
+      </View>
+    </Card>
   );
 }
 

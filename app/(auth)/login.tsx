@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Screen, Button, TextField } from '@/components';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuthActions } from '@/hooks';
+import { backend } from '@/data';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
 import { IS_MOCK } from '@/lib/env';
@@ -44,15 +45,27 @@ export default function LoginScreen() {
     try {
       // モックではネイティブ SDK を呼ばずデモユーザーでログインする。
       let token = 'mock';
+      // Apple はアカウント削除時の失効に備え、認可コードを控える（任意）。
+      let appleCode: string | null = null;
       if (!IS_MOCK) {
-        const cred = provider === 'apple' ? await signInWithApple() : await signInWithGoogle();
-        token = cred.token;
+        if (provider === 'apple') {
+          const cred = await signInWithApple();
+          token = cred.token;
+          appleCode = cred.authorizationCode;
+        } else {
+          const cred = await signInWithGoogle();
+          token = cred.token;
+        }
       }
       // Supabase への認証が終わるまで loading を維持する（多重押下防止）。
       signInWithProvider.mutate(
         { provider, token },
         {
           onError: (e) => toast.show(t(authErrorKey(e)), 'error'),
+          onSuccess: () => {
+            // ログイン成功後に裏で認可コードを保存（失敗しても無視。ログインは阻害しない）。
+            if (appleCode) void backend.linkAppleAuthorization(appleCode).catch(() => {});
+          },
           onSettled: () => setOauthLoading(null),
         }
       );

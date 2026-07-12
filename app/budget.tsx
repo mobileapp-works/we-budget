@@ -63,7 +63,7 @@ export default function BudgetScreen() {
       { categoryId: edit.categoryId, amount: parsed, currency: baseCurrency },
       {
         onSuccess: () => {
-          toast.show(t('expense.saved'), 'success');
+          toast.show(t('common.saved'), 'success');
           setEdit(null);
         },
         onError: () => toast.show(t('error.generic'), 'error'),

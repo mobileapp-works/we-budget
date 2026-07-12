@@ -33,3 +33,9 @@ export function formatDate(date: ISODate | Date, locale = 'ja'): string {
   const d = dayjs(date);
   return locale === 'ja' ? d.format('M月D日') : d.format('MMM D');
 }
+
+/** 表示用に「年月」を整形する（例: 2026年7月 / July 2026）。 */
+export function formatMonth(date: ISODate | Date = new Date(), locale = 'ja'): string {
+  const d = dayjs(date);
+  return locale.startsWith('ja') ? d.format('YYYY年M月') : d.format('MMMM YYYY');
+}

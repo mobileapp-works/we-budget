@@ -7,11 +7,11 @@ import { Screen, EmptyState, StateView, ExpenseRow, useCategoryName } from '@/co
 import { useExpenses, useCategories, useExpenseHelpers, useLocale } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography, radius } from '@/constants';
-import { formatCurrency, getMonthKey } from '@/utils';
+import { formatCurrency, formatMonth, getMonthKey } from '@/utils';
 import type { Expense, UUID } from '@/types/models';
 
 export default function HistoryScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
   const locale = useLocale();
@@ -47,6 +47,8 @@ export default function HistoryScreen() {
     <Screen padded={false}>
       <View style={styles.header}>
         <Text style={[typography.title1, { color: colors.textPrimary }]}>{t('expense.historyTitle')}</Text>
+        {/* 表示範囲が当月であることを明示（過去月が消えたと誤解されないように）。 */}
+        <Text style={[typography.footnote, { color: colors.textSecondary }]}>{formatMonth(new Date(), i18n.language)}</Text>
       </View>
 
       {/* カテゴリフィルタ（横スクロールのチップ） */}

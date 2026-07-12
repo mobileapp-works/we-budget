@@ -45,7 +45,14 @@ export default function ExpenseInputScreen() {
   const session = useRequireSession();
   const locale = useLocale();
   const baseCurrency = session.pair.baseCurrency;
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  // 変動固定費からの「今月分を入力」導線では fixedCostId / categoryId / presetName を受け取り、
+  // 保存する支出をその固定費に紐づける（当月の未入力判定・リマインドが解消される）。
+  const { id, fixedCostId: linkFixedCostId, categoryId: presetCategoryId, presetName } = useLocalSearchParams<{
+    id?: string;
+    fixedCostId?: string;
+    categoryId?: string;
+    presetName?: string;
+  }>();
   const editing = typeof id === 'string';
 
   const { data: categories } = useCategories();
@@ -94,12 +101,17 @@ export default function ExpenseInputScreen() {
     }
   }, [editing, existing.data, session.userId, baseCurrency]);
 
-  // 初期カテゴリを先頭に
+  // 初期カテゴリ: 変動固定費からの入力ならその費目、なければ先頭。
   useEffect(() => {
-    if (!categoryId && categories && categories.length > 0) {
-      setCategoryId(categories[0]!.id);
-    }
-  }, [categories, categoryId]);
+    if (categoryId || !categories || categories.length === 0) return;
+    const preset = !editing && presetCategoryId ? categories.find((c) => c.id === presetCategoryId) : undefined;
+    setCategoryId(preset?.id ?? categories[0]!.id);
+  }, [categories, categoryId, editing, presetCategoryId]);
+
+  // 変動固定費からの入力なら、費目名をメモに初期表示（新規のときのみ）。
+  useEffect(() => {
+    if (!editing && presetName) setMemo(presetName);
+  }, [editing, presetName]);
 
   const payerOptions = useMemo(() => {
     const base: { value: PayerChoice; label: string }[] = [{ value: 'self', label: t('expense.payerSelf') }];
@@ -206,6 +218,8 @@ export default function ExpenseInputScreen() {
         description: memo.trim() || null,
         storeName: store.trim() || null,
         receiptImageUrl: receiptRef,
+        // 新規は導線から渡された固定費に紐づけ、編集は既存の紐づけを維持する。
+        fixedCostId: linkFixedCostId ?? existing.data?.fixedCostId ?? null,
       };
 
       if (editing && existing.data) {
@@ -307,6 +321,9 @@ export default function ExpenseInputScreen() {
                 keyboardType="numeric"
                 placeholder="0"
               />
+              <Text style={[typography.footnote, { color: colors.textSecondary, marginBottom: spacing.xs }]}>
+                {t('expense.rateHint', { currency, base: baseCurrency })}
+              </Text>
               {(() => {
                 const pa = parseAmount(amount);
                 const pr = parseAmount(rate);

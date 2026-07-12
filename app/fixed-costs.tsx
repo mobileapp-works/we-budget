@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, TextField, DayPickerField, EmptyState, StateView, SegmentedControl, useCategoryName } from '@/components';
 import { useFixedCosts, useFixedCostActions, useExpenses, useCategories, useRequireSession, useLocale } from '@/hooks';
@@ -17,6 +18,7 @@ export default function FixedCostsScreen() {
   const { colors } = useTheme();
   const locale = useLocale();
   const toast = useToast();
+  const router = useRouter();
   const session = useRequireSession();
   const baseCurrency = session.pair.baseCurrency;
   const resolveName = useCategoryName();
@@ -64,7 +66,7 @@ export default function FixedCostsScreen() {
     };
     addFixedCost.mutate(input, {
       onSuccess: () => {
-        toast.show(t('expense.saved'), 'success');
+        toast.show(t('common.saved'), 'success');
         setOpen(false);
         setName('');
         setAmount('');
@@ -134,9 +136,19 @@ export default function FixedCostsScreen() {
                     </Text>
                   </View>
                   {needsInput ? (
-                    <View style={[styles.badge, { backgroundColor: colors.warning }]}>
-                      <Text style={[typography.caption, { color: '#FFF' }]}>{t('fixedCosts.needsInput')}</Text>
-                    </View>
+                    <Pressable
+                      onPress={() =>
+                        router.push(
+                          `/expense-input?fixedCostId=${fc.id}&categoryId=${fc.categoryId}&presetName=${encodeURIComponent(fc.name)}`
+                        )
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${fc.name}: ${t('fixedCosts.enterThisMonth')}`}
+                      style={[styles.enterBtn, { backgroundColor: colors.warning }]}
+                    >
+                      <Ionicons name="add" size={14} color="#FFF" />
+                      <Text style={[typography.caption, { color: '#FFF' }]}>{t('fixedCosts.enterThisMonth')}</Text>
+                    </Pressable>
                   ) : (
                     <View style={[styles.typeTag, { backgroundColor: colors.coralSoft }]}>
                       <Text style={[typography.caption, { color: colors.textSecondary }]}>
@@ -200,7 +212,7 @@ const styles = StyleSheet.create({
   listCard: { padding: 0, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
   rowMain: { flex: 1 },
-  badge: { paddingHorizontal: spacing.xs, paddingVertical: 2, borderRadius: radius.full },
+  enterBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
   typeTag: { paddingHorizontal: spacing.xs, paddingVertical: 2, borderRadius: radius.full },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing.lg },
   sheet: { borderRadius: radius.lg, padding: spacing.lg, maxHeight: '80%' },

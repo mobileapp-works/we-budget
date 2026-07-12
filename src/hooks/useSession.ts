@@ -53,6 +53,10 @@ export function useAuthActions() {
       backend.signUp(email, password, displayName),
   });
 
+  const resendVerification = useMutation({
+    mutationFn: (email: string) => backend.resendVerificationEmail(email),
+  });
+
   const signOut = useMutation({
     mutationFn: () => backend.signOut(),
     onSuccess: () => {
@@ -87,5 +91,5 @@ export function useAuthActions() {
     },
   });
 
-  return { signIn, signInWithProvider, signUp, signOut, sendPasswordReset, recoverSession, updatePassword, deleteAccount };
+  return { signIn, signInWithProvider, signUp, resendVerification, signOut, sendPasswordReset, recoverSession, updatePassword, deleteAccount };
 }

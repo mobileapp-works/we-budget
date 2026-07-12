@@ -1,17 +1,32 @@
-/** メール確認待ち画面。 */
+/** メール確認待ち画面。届かない初回ユーザー向けに確認メールの再送もできる。 */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, Button } from '@/components';
+import { useAuthActions } from '@/hooks';
+import { useToast } from '@/providers/ToastProvider';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography } from '@/constants';
+import { authErrorKey } from '@/lib/authErrors';
 
 export default function VerifyEmailScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
+  const toast = useToast();
+  const { resendVerification } = useAuthActions();
+  // サインアップ画面から渡されたメールアドレス（再送先）。直接遷移時は無いこともある。
+  const { email } = useLocalSearchParams<{ email?: string }>();
+
+  const handleResend = () => {
+    if (!email) return;
+    resendVerification.mutate(email, {
+      onSuccess: () => toast.show(t('auth.resent'), 'success'),
+      onError: (e) => toast.show(t(authErrorKey(e)), 'error'),
+    });
+  };
 
   return (
     <Screen withBanner={false}>
@@ -23,7 +38,15 @@ export default function VerifyEmailScreen() {
         <Text style={[typography.body, styles.body, { color: colors.textSecondary }]}>
           {t('auth.verifyEmailBody')}
         </Text>
-        <Button title={t('auth.toLogin')} onPress={() => router.replace('/(auth)/login')} />
+        {email ? (
+          <>
+            <Button title={t('auth.resend')} onPress={handleResend} loading={resendVerification.isPending} />
+            <View style={{ height: spacing.sm }} />
+            <Button title={t('auth.toLogin')} variant="text" onPress={() => router.replace('/(auth)/login')} />
+          </>
+        ) : (
+          <Button title={t('auth.toLogin')} onPress={() => router.replace('/(auth)/login')} />
+        )}
       </View>
     </Screen>
   );

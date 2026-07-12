@@ -44,6 +44,8 @@ export interface ExpenseInput {
   description: string | null;
   storeName: string | null;
   receiptImageUrl: string | null;
+  /** 変動固定費の当月入力を紐づける固定費ID（通常の支出は null）。 */
+  fixedCostId?: UUID | null;
 }
 
 export interface FixedCostInput {
@@ -98,8 +100,15 @@ export interface Backend {
   /** Apple / Google のネイティブ ID トークンでサインイン（無ければ自動でアカウント作成）。 */
   signInWithIdToken(provider: 'apple' | 'google', token: string, nonce?: string): Promise<SessionContext>;
   signUp(email: string, password: string, displayName: string): Promise<void>;
+  /** サインアップ確認メールを再送する（メールが届かなかった初回ユーザー向け）。 */
+  resendVerificationEmail(email: string): Promise<void>;
   signOut(): Promise<void>;
   sendPasswordReset(email: string): Promise<void>;
+  /**
+   * Sign in with Apple の authorization_code を送り、削除時失効用の refresh_token を
+   * サーバー側で保管させる（Apple 未設定なら no-op）。ログインをブロックしない前提。
+   */
+  linkAppleAuthorization(authorizationCode: string): Promise<void>;
   /** リカバリーメールのディープリンクで受け取ったトークンからセッションを確立する。 */
   recoverSession(accessToken: string, refreshToken: string): Promise<void>;
   /** ログイン中ユーザーのパスワードを変更する（リカバリーセッション含む）。 */

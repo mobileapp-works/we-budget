@@ -16,7 +16,7 @@
     <div id="ja" class="section active">
       <div class="doc-header">
         <h1>プライバシーポリシー</h1>
-        <div class="doc-meta"><span>WeBudget</span><span>最終更新: 2026-07-05</span></div>
+        <div class="doc-meta"><span>WeBudget</span><span>最終更新: 2026-07-12</span></div>
       </div>
       <p>WeBudget（以下「本アプリ」）は、ユーザーのプライバシーを尊重します。本ポリシーは、本アプリが取得・利用する情報について説明します。</p>
 
@@ -32,14 +32,14 @@
         <li>家計簿機能（記録・集計・立替精算・予算管理）の提供</li>
         <li>ペアのパートナー間でのデータ共有</li>
         <li>通知の送信（パートナーの記録、リマインド、予算アラート）</li>
-        <li>レシートの自動読み取り（OCR）。同意した場合のみ実行し、画像は端末内で処理され外部サービスには送信されません。</li>
+        <li>レシートの読み取り（OCR）。同意した場合のみ実行します。文字認識は端末内で処理され、読み取りのために画像が外部へ送信されることはありません。保存したレシート画像は、パートナーとの共有・後からの見返しのため、当アプリのクラウドストレージ（Supabase）に保管されます。</li>
       </ul>
 
       <h2>3. 第三者への提供・外部サービス</h2>
       <ul>
-        <li>データベース・認証・ストレージ: Supabase</li>
-        <li>レシートOCR: 端末内で処理（画像は外部サービスに送信しません）</li>
-        <li>広告: Google AdMob（トラッキング許可は端末設定で管理できます）</li>
+        <li>データベース・認証・ストレージ: Supabase（家計データ・レシート画像・プロフィール画像を保管）</li>
+        <li>レシートOCR: 文字認識は端末内で処理（読み取りのための画像送信はありません）。保存したレシート画像は Supabase Storage に保管されます。</li>
+        <li>広告: Google AdMob。広告配信のため、AdMob の SDK が広告識別子（IDFA/AAID）・IPアドレス・端末情報・広告の表示や操作の履歴などを取得する場合があります。詳細は Google のポリシーをご確認ください。トラッキングの許可は端末設定（App Tracking Transparency）で管理でき、拒否してもアプリはご利用いただけます。</li>
       </ul>
       <p>法令に基づく場合を除き、上記以外の第三者に個人情報を販売・提供しません。</p>
 
@@ -53,7 +53,7 @@
     <div id="en" class="section">
       <div class="doc-header">
         <h1>Privacy Policy</h1>
-        <div class="doc-meta"><span>WeBudget</span><span>Last updated: 2026-07-05</span></div>
+        <div class="doc-meta"><span>WeBudget</span><span>Last updated: 2026-07-12</span></div>
       </div>
       <p>WeBudget ("the App") respects your privacy. This policy explains what information the App collects and how it is used.</p>
 
@@ -69,14 +69,14 @@
         <li>Providing budgeting features (records, totals, reimbursement, budgets)</li>
         <li>Sharing data between paired partners</li>
         <li>Sending notifications (partner activity, reminders, budget alerts)</li>
-        <li>Receipt OCR — performed on-device with your consent; images never leave your device</li>
+        <li>Receipt OCR — performed on-device with your consent; your image is not sent anywhere for OCR. Saved receipt images are stored in the app's cloud storage (Supabase) so you and your partner can view them later.</li>
       </ul>
 
       <h2>3. Third Parties</h2>
       <ul>
-        <li>Database/Auth/Storage: Supabase</li>
-        <li>Receipt OCR: processed on-device (images are not sent to any external service)</li>
-        <li>Ads: Google AdMob (tracking permission is managed in device settings)</li>
+        <li>Database/Auth/Storage: Supabase (stores budget data, receipt images, and profile images)</li>
+        <li>Receipt OCR: text recognition is processed on-device (no image is sent for OCR). Saved receipt images are stored in Supabase Storage.</li>
+        <li>Ads: Google AdMob. To serve ads, the AdMob SDK may collect advertising identifiers (IDFA/AAID), IP address, device information, and ad impression/interaction data. See Google's policies for details. Tracking permission is managed via App Tracking Transparency in device settings, and the app works even if you decline.</li>
       </ul>
       <p>We do not sell or share your personal information except as required by law.</p>
 

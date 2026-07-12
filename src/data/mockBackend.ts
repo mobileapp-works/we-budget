@@ -359,6 +359,10 @@ export const mockBackend: Backend = {
     state.email = email;
   },
 
+  async resendVerificationEmail() {
+    await delay();
+  },
+
   async signOut() {
     await delay(60);
     state.currentUserId = null;
@@ -366,6 +370,11 @@ export const mockBackend: Backend = {
 
   async sendPasswordReset() {
     await delay();
+  },
+
+  async linkAppleAuthorization() {
+    // モックでは Apple 連携は行わない。
+    await delay(60);
   },
 
   async recoverSession() {
@@ -589,10 +598,10 @@ export const mockBackend: Backend = {
       recordedBy: state.currentUserId,
       settlementId: null,
       isFixedCost: false,
-      fixedCostId: null,
       createdAt: nowIso(),
       updatedAt: nowIso(),
       ...input,
+      fixedCostId: input.fixedCostId ?? null,
     };
     state.expenses.push(expense);
     fireBudgetAlerts(expense.expenseDate);

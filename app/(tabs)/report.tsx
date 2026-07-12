@@ -10,13 +10,13 @@ import { Screen, Card, EmptyState, StateView, SegmentedControl, CategoryIcon, us
 import { useExpenses, useCategories, useLocale, useRequireSession } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography, radius } from '@/constants';
-import { formatCurrency, getMonthKey, roundMoney } from '@/utils';
+import { formatCurrency, formatMonth, getMonthKey, roundMoney } from '@/utils';
 import type { Category } from '@/types/models';
 
 type Period = 'month' | 'week';
 
 export default function ReportScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const locale = useLocale();
   const resolveName = useCategoryName();
@@ -60,6 +60,8 @@ export default function ReportScreen() {
     <Screen padded={false}>
       <View style={styles.header}>
         <Text style={[typography.title1, { color: colors.textPrimary }]}>{t('report.title')}</Text>
+        {/* 集計対象は当月データ（週は当月内の直近7日）。全期間と誤解されないよう明示。 */}
+        <Text style={[typography.footnote, { color: colors.textSecondary }]}>{formatMonth(new Date(), i18n.language)}</Text>
       </View>
 
       <View style={styles.segment}>

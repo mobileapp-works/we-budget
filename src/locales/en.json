@@ -2,6 +2,7 @@
   "common": {
     "appName": "WeBudget",
     "save": "Save",
+    "saved": "Saved",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
@@ -39,6 +40,7 @@
     "verifyEmailTitle": "Verification email sent",
     "verifyEmailBody": "Tap the link in the email to finish signing up. You can log in after confirming.",
     "resend": "Resend email",
+    "resent": "Verification email resent",
     "resetPasswordTitle": "Reset password",
     "resetPasswordBody": "We'll send a reset link to your email.",
     "sendResetEmail": "Send reset email",
@@ -55,7 +57,7 @@
   },
   "aiConsent": {
     "title": "About receipt scanning",
-    "body": "Receipt auto-scan (OCR) runs entirely on your device. Captured images are never sent anywhere — the text is read locally on your phone. Enable this feature?",
+    "body": "Receipt text recognition (OCR) runs on your device — your image is not sent anywhere for OCR. When you save an expense, the receipt image is stored in the app's secure cloud storage (Supabase) so you and your partner can view it later. Enable this feature?",
     "agree": "Agree and continue",
     "decline": "Not now (manual entry only)"
   },
@@ -117,6 +119,7 @@
     "amount": "Amount",
     "currency": "Currency",
     "rate": "Exchange rate (1 {{currency}} = ? {{base}})",
+    "rateHint": "e.g. if 1 {{currency}} = 150 {{base}}, enter \"150\"",
     "rateRequired": "Please enter an exchange rate",
     "baseAmountPreview": "≈ {{amount}}",
     "category": "Category",
@@ -209,6 +212,7 @@
     "reminderDayNote": "You'll be notified on this day if the month's amount isn't entered yet",
     "active": "Active",
     "needsInput": "This month's entry is missing",
+    "enterThisMonth": "Enter this month",
     "deleteConfirm": "Delete this fixed cost? Existing expense records will remain.",
     "emptyTitle": "Register fixed costs",
     "emptyBody": "Add rent or utilities to automate monthly entries."

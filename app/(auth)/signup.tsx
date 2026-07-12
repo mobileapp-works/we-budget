@@ -31,7 +31,7 @@ export default function SignupScreen() {
     signUp.mutate(
       { email, password, displayName: displayName.trim() || t('profile.defaultName') },
       {
-        onSuccess: () => router.replace('/(auth)/verify-email'),
+        onSuccess: () => router.replace(`/(auth)/verify-email?email=${encodeURIComponent(email)}`),
         onError: (e) => toast.show(t(authErrorKey(e)), 'error'),
       }
     );

@@ -27,8 +27,11 @@ export async function isAppleAuthAvailable(): Promise<boolean> {
   }
 }
 
-/** Apple でサインインし identityToken を返す。 */
-export async function signInWithApple(): Promise<{ token: string }> {
+/**
+ * Apple でサインインし identityToken を返す。
+ * authorizationCode はアカウント削除時のトークン失効（revoke）用に控える（任意・単発）。
+ */
+export async function signInWithApple(): Promise<{ token: string; authorizationCode: string | null }> {
   try {
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
@@ -37,7 +40,7 @@ export async function signInWithApple(): Promise<{ token: string }> {
       ],
     });
     if (!credential.identityToken) throw new Error('Apple: identityToken missing');
-    return { token: credential.identityToken };
+    return { token: credential.identityToken, authorizationCode: credential.authorizationCode ?? null };
   } catch (e) {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new OAuthCancelledError();
     throw e;

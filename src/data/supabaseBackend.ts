@@ -120,6 +120,17 @@ export const supabaseBackend: Backend = {
     if (error) throw error;
   },
 
+  async resendVerificationEmail(email) {
+    const sb = requireSupabase();
+    // signUp と同じ emailRedirectTo を指定しないと確認リンクが Site URL（localhost）へ飛ぶ。
+    const { error } = await sb.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: 'webudget://login' },
+    });
+    if (error) throw error;
+  },
+
   async signOut() {
     await requireSupabase().auth.signOut();
   },
@@ -127,6 +138,11 @@ export const supabaseBackend: Backend = {
   async sendPasswordReset(email) {
     const { error } = await requireSupabase().auth.resetPasswordForEmail(email, { redirectTo: 'webudget://reset-password' });
     if (error) throw error;
+  },
+
+  async linkAppleAuthorization(authorizationCode) {
+    // 失敗はログインに影響させない（呼び出し側が fire-and-forget）。
+    await requireSupabase().functions.invoke('apple-link', { body: { authorizationCode } });
   },
 
   async recoverSession(accessToken, refreshToken) {
@@ -388,6 +404,7 @@ export const supabaseBackend: Backend = {
         description: input.description,
         store_name: input.storeName,
         receipt_image_url: input.receiptImageUrl,
+        fixed_cost_id: input.fixedCostId ?? null,
       })
       .select()
       .single();

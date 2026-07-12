@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "レシートを撮影して支出を記録するためにカメラを使用します。",
-        "NSPhotoLibraryUsageDescription": "保存済みのレシート画像を選択して支出を記録するために写真ライブラリにアクセスします。",
+        "NSPhotoLibraryUsageDescription": "レシート画像・プロフィール画像・カテゴリ画像を選択するために写真ライブラリにアクセスします。",
         "NSUserTrackingUsageDescription": "あなたに関連性の高い広告を表示するためにトラッキングの許可をお願いします。",
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -74,7 +74,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "保存済みのレシート画像を選択するために写真ライブラリにアクセスします。",
+          "photosPermission": "レシート画像・プロフィール画像・カテゴリ画像を選択するために写真ライブラリにアクセスします。",
           "cameraPermission": "レシートを撮影するためにカメラを使用します。"
         }
       ],
