@@ -176,7 +176,9 @@
     "soloEmptyTitle": "Invite your partner",
     "soloEmptyBody": "Pair up to settle reimbursements.",
     "noBalanceTitle": "Nothing to settle",
-    "noBalanceBody": "There's no outstanding balance."
+    "noBalanceBody": "There's no outstanding balance.",
+    "splitRatioTitle": "Split ratio",
+    "splitRatioHint": "Used to calculate the balance. Changing it recalculates the amount above."
   },
   "sharedAccount": {
     "title": "Shared account",
@@ -286,7 +288,10 @@
     "unpairAnyway": "Unpair anyway",
     "splitRatio": "Split ratio",
     "saved": "Profile updated",
-    "defaultName": "User"
+    "defaultName": "User",
+    "splitRatioSelf": "Your share (%)",
+    "splitRatioSummary": "{{me}} {{myPct}}% : {{partner}} {{partnerPct}}%",
+    "splitRatioError": "Enter a whole number from 1 to 99"
   },
   "settings": {
     "title": "Settings",

@@ -176,7 +176,9 @@
     "soloEmptyTitle": "パートナーを招待しましょう",
     "soloEmptyBody": "ペアになると立替の精算ができます。",
     "noBalanceTitle": "精算はありません",
-    "noBalanceBody": "立替の差額はありません。"
+    "noBalanceBody": "立替の差額はありません。",
+    "splitRatioTitle": "負担割合",
+    "splitRatioHint": "この割合で立替残高を計算します。変更すると上の残高が再計算されます。"
   },
   "sharedAccount": {
     "title": "共同口座",
@@ -286,7 +288,10 @@
     "unpairAnyway": "解除する",
     "splitRatio": "負担割合",
     "saved": "プロフィールを更新しました",
-    "defaultName": "ユーザー"
+    "defaultName": "ユーザー",
+    "splitRatioSelf": "自分の割合（％）",
+    "splitRatioSummary": "{{me}} {{myPct}}％ ： {{partner}} {{partnerPct}}％",
+    "splitRatioError": "1〜99 の整数を入力してください"
   },
   "settings": {
     "title": "設定",

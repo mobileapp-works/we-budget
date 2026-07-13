@@ -5,11 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Screen, ScreenHeader, Card, Button, TextField, SegmentedControl } from '@/components';
+import { Screen, ScreenHeader, Card, Button, TextField, SplitRatioField } from '@/components';
 import {
   useRequireSession,
   useProfileActions,
   usePairActions,
+  useSplitRatio,
   useAuthActions,
   useSettlementBalance,
   useLocale,
@@ -19,8 +20,6 @@ import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
 import { formatCurrency } from '@/utils';
 import { authErrorKey } from '@/lib/authErrors';
-
-type RatioPreset = '50' | '60' | '40';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -32,7 +31,8 @@ export default function ProfileScreen() {
   const balanceQuery = useSettlementBalance();
 
   const { updateProfile, changeAvatar } = useProfileActions();
-  const { leavePair, updateSplitRatio } = usePairActions();
+  const { leavePair } = usePairActions();
+  const { myPercent, save: saveSplitRatio, saving: savingRatio } = useSplitRatio();
   const { sendPasswordReset } = useAuthActions();
 
   const [displayName, setDisplayName] = useState(session.profile.displayName);
@@ -124,15 +124,9 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // 表示・保存とも「自分 : パートナー」基準に揃える。
-  // pairs の割合は user1 基準なので、自分が user2 の場合は変換して読む/書く。
-  const isUser1 = session.pair.user1Id === session.userId;
-  const myRatio = isUser1 ? session.pair.splitRatioUser1 : session.pair.splitRatioUser2;
-  const ratioValue: RatioPreset = myRatio === 60 ? '60' : myRatio === 40 ? '40' : '50';
-
-  const handleChangeRatio = (v: RatioPreset) => {
-    const mine = parseInt(v, 10);
-    updateSplitRatio.mutate(isUser1 ? mine : 100 - mine, {
+  const handleSaveRatio = (mine: number) => {
+    saveSplitRatio(mine, {
+      onSuccess: () => toast.show(t('common.saved'), 'success'),
       onError: () => toast.show(t('error.generic'), 'error'),
     });
   };
@@ -176,18 +170,16 @@ export default function ProfileScreen() {
           {isPaired ? (
             <>
               <Text style={[typography.subhead, { color: colors.textSecondary, marginBottom: spacing.xs }]}>
-                {t('profile.splitRatio')}（{t('expense.payerSelf')} : {session.partner?.displayName}）
+                {t('profile.splitRatio')}
               </Text>
-              <SegmentedControl<RatioPreset>
-                options={[
-                  { value: '50', label: '50 : 50' },
-                  { value: '60', label: '60 : 40' },
-                  { value: '40', label: '40 : 60' },
-                ]}
-                value={ratioValue}
-                onChange={handleChangeRatio}
+              <SplitRatioField
+                myLabel={t('expense.payerSelf')}
+                partnerLabel={session.partner?.displayName ?? t('expense.payerPartner')}
+                myPercent={myPercent}
+                onSave={handleSaveRatio}
+                saving={savingRatio}
               />
-              <View style={{ height: spacing.md }} />
+              <View style={{ height: spacing.xs }} />
               <Button title={t('profile.unpair')} variant="destructive" onPress={handleUnpair} loading={leavePair.isPending} />
             </>
           ) : (

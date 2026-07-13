@@ -66,11 +66,6 @@ export function usePairActions() {
     onSuccess: (session) => qc.setQueryData(queryKeys.session, session),
   });
 
-  const updateSplitRatio = useMutation({
-    mutationFn: (user1Percent: number) => backend.updateSplitRatio(user1Percent),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.session }),
-  });
-
   // 基準通貨の変更。再換算で全金額が変わるため、セッションの pair を更新しつつ全クエリを無効化する。
   const setBaseCurrency = useMutation({
     mutationFn: ({ currency, rate }: { currency: string; rate: number }) =>
@@ -82,7 +77,29 @@ export function usePairActions() {
     },
   });
 
-  return { createInvite, requestPair, respondRequest, cancelRequest, leavePair, updateSplitRatio, setBaseCurrency };
+  return { createInvite, requestPair, respondRequest, cancelRequest, leavePair, setBaseCurrency };
+}
+
+/**
+ * 負担割合（「自分」基準の 1〜99）の取得と保存。
+ * pairs は user1 基準で持つため、自分が user2 のときは 100- で変換して読み書きする。
+ * 割合は精算残高（RPC で split_ratio を参照）に効くので、保存後は精算残高クエリも無効化する。
+ */
+export function useSplitRatio() {
+  const qc = useQueryClient();
+  const session = useRequireSession();
+  const isUser1 = session.pair.user1Id === session.userId;
+  const myPercent = isUser1 ? session.pair.splitRatioUser1 : session.pair.splitRatioUser2;
+
+  const mutation = useMutation({
+    mutationFn: (mine: number) => backend.updateSplitRatio(isUser1 ? mine : 100 - mine),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.session });
+      qc.invalidateQueries({ queryKey: queryKeys.settlementBalance(session.pair.id) });
+    },
+  });
+
+  return { myPercent, save: mutation.mutate, saving: mutation.isPending };
 }
 
 /**
