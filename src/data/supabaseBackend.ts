@@ -36,21 +36,31 @@ async function context(): Promise<{ userId: UUID; pairId: UUID }> {
 
 const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
+// base64 文字コード → 6bit 値の逆引き表（無効文字は 255）。
+// 1文字ごとの indexOf(O(64)) を定数時間の配列参照に置き換え、全体を O(N) にする。
+const B64_LOOKUP = (() => {
+  const table = new Uint8Array(128).fill(255);
+  for (let i = 0; i < B64_CHARS.length; i++) table[B64_CHARS.charCodeAt(i)] = i;
+  return table;
+})();
+
 /**
  * base64 文字列を Uint8Array にデコードする。
  * RN/Hermes で確実に動くよう atob 等に依存しない自前実装。
  * Storage.upload は ArrayBufferView を受け付けるためこれをそのまま渡す。
+ *
+ * '='・改行などの無効文字はループ内でスキップするため事前の正規表現置換（巨大文字列の複製）は不要。
+ * 出力は上限長で確保し、実際の書き込み長で view を返す。
  */
 function base64ToBytes(base64: string): Uint8Array {
-  const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
-  const outLen = Math.floor((clean.length * 3) / 4);
-  const bytes = new Uint8Array(outLen);
+  const bytes = new Uint8Array(Math.floor((base64.length * 3) / 4));
   let pos = 0;
   let buffer = 0;
   let bits = 0;
-  for (let i = 0; i < clean.length; i++) {
-    const val = B64_CHARS.indexOf(clean[i]!);
-    if (val === -1) continue;
+  for (let i = 0; i < base64.length; i++) {
+    const code = base64.charCodeAt(i);
+    const val = code < 128 ? B64_LOOKUP[code]! : 255;
+    if (val === 255) continue; // '='・空白・非ASCII 等はスキップ
     buffer = (buffer << 6) | val;
     bits += 6;
     if (bits >= 8) {
@@ -58,7 +68,7 @@ function base64ToBytes(base64: string): Uint8Array {
       bytes[pos++] = (buffer >> bits) & 0xff;
     }
   }
-  return bytes;
+  return pos === bytes.length ? bytes : bytes.subarray(0, pos);
 }
 
 async function buildSession(): Promise<SessionContext> {

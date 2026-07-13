@@ -21,7 +21,8 @@
     "confirm": "確認",
     "optional": "任意",
     "required": "必須",
-    "dayOfMonth": "{{day}}日"
+    "dayOfMonth": "{{day}}日",
+    "uploading": "アップロード中…"
   },
   "auth": {
     "loginTitle": "ログイン",
@@ -354,7 +355,8 @@
     "passwordMismatch": "パスワードが一致しません",
     "crashTitle": "問題が発生しました",
     "crashBody": "アプリでエラーが発生しました。もう一度お試しください。",
-    "mockMode": "現在はデモモードです。Supabase設定後に実データで動作します。"
+    "mockMode": "現在はデモモードです。Supabase設定後に実データで動作します。",
+    "imageRead": "画像を読み込めませんでした。別の写真を試してください。"
   },
   "category": {
     "food": "食費",

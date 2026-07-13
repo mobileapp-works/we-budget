@@ -81,11 +81,16 @@ export default function CategoriesScreen() {
       quality: 0.6,
       base64: true,
     });
-    if (result.canceled || !result.assets[0]?.base64) return;
+    if (result.canceled) return;
     const asset = result.assets[0];
+    // 稀に base64 が返らない（クロップ等）。無音で終わらせず理由を伝える。
+    if (!asset?.base64) {
+      toast.show(t('error.imageRead'), 'error');
+      return;
+    }
     // プレビューはローカルURIで即表示。実アップロードは保存時にまとめて行う。
     setIcon(asset.uri);
-    setPendingPhoto({ uri: asset.uri, base64: asset.base64!, contentType: asset.mimeType ?? 'image/jpeg' });
+    setPendingPhoto({ uri: asset.uri, base64: asset.base64, contentType: asset.mimeType ?? 'image/jpeg' });
   };
 
   const handleSave = async () => {
@@ -97,6 +102,7 @@ export default function CategoriesScreen() {
     setSaving(true);
     try {
       // カスタム写真が選ばれていれば Storage にアップロードし、公開URLを icon に使う。
+      if (pendingPhoto) toast.show(t('common.uploading'), 'info');
       const finalIcon = pendingPhoto ? await uploadIcon.mutateAsync(pendingPhoto) : icon;
       if (editing.mode === 'add') {
         await addCategory.mutateAsync({ name: name.trim(), icon: finalIcon, color });

@@ -21,7 +21,8 @@
     "confirm": "Confirm",
     "optional": "Optional",
     "required": "Required",
-    "dayOfMonth": "Day {{day}}"
+    "dayOfMonth": "Day {{day}}",
+    "uploading": "Uploading…"
   },
   "auth": {
     "loginTitle": "Log In",
@@ -354,7 +355,8 @@
     "passwordMismatch": "Passwords do not match",
     "crashTitle": "Something went wrong",
     "crashBody": "The app hit an unexpected error. Please try again.",
-    "mockMode": "Demo mode. Real data works after Supabase setup."
+    "mockMode": "Demo mode. Real data works after Supabase setup.",
+    "imageRead": "Couldn’t read the image. Try another photo."
   },
   "category": {
     "food": "Food",

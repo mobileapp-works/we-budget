@@ -61,10 +61,16 @@ export default function ProfileScreen() {
       quality: 0.6,
       base64: true,
     });
-    if (result.canceled || !result.assets[0]?.base64) return;
+    if (result.canceled) return;
     const asset = result.assets[0];
+    // 稀に base64 が返らない（クロップ等）。無音で終わらせず理由を伝える。
+    if (!asset?.base64) {
+      toast.show(t('error.imageRead'), 'error');
+      return;
+    }
+    toast.show(t('common.uploading'), 'info');
     changeAvatar.mutate(
-      { uri: asset.uri, base64: asset.base64!, contentType: asset.mimeType ?? 'image/jpeg' },
+      { uri: asset.uri, base64: asset.base64, contentType: asset.mimeType ?? 'image/jpeg' },
       {
         onSuccess: () => toast.show(t('profile.saved'), 'success'),
         onError: () => toast.show(t('error.generic'), 'error'),
