@@ -5,11 +5,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, ScreenHeader, Card, Button, StateView, CategoryIcon, useCategoryName } from '@/components';
-import { useExpense, useExpenseActions, useExpenseHelpers, useLocale, useReceiptImageUrl, useRequireSession, useSettlementActions } from '@/hooks';
+import {
+  useExpense,
+  useExpenseActions,
+  useExpenseHelpers,
+  useLocale,
+  useReceiptImageUrl,
+  useRequireSession,
+  useSettlementActions,
+  useSharedEntries,
+  useSharedExpenses,
+} from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography, radius } from '@/constants';
-import { formatCurrency, formatDate, calculateExpenseSettlement } from '@/utils';
+import { calculateSharedBalance, formatCurrency, formatDate, calculateExpenseSettlement } from '@/utils';
 import type { UUID } from '@/types/models';
 
 export default function ExpenseDetailScreen() {
@@ -65,11 +75,28 @@ export default function ExpenseDetailScreen() {
   const canSettleFromShared =
     !!expense && !isSettled && !expense.isSharedPayment && expense.payerUserId !== null;
 
+  // 共同口座から精算する際の残高不足警告用（キャッシュ済みなら追加通信なし）。
+  const sharedEntriesQuery = useSharedEntries();
+  const sharedExpensesQuery = useSharedExpenses();
+  const baseCurrency = session.pair.baseCurrency;
+
   // この立替を共同口座払いに切り替える＝立替者へ共同口座から払い戻し、貸し借りから外す。
   const confirmSettleFromShared = () => {
     if (!expense) return;
-    const amount = formatCurrency(expense.amount, expense.currency, locale);
-    Alert.alert(t('expense.settleFromSharedConfirmTitle'), t('expense.settleFromSharedConfirmBody', { amount }), [
+    // 共同口座の残高は基準通貨換算（baseAmount）で動くため、確認金額も基準通貨で示す。
+    const amount = formatCurrency(expense.baseAmount, baseCurrency, locale);
+    // 残高が足りない場合はマイナスになることを明示する（データ未取得時は警告なしで続行可）。
+    const sharedBalance =
+      sharedEntriesQuery.data && sharedExpensesQuery.data
+        ? calculateSharedBalance(sharedEntriesQuery.data, sharedExpensesQuery.data, baseCurrency).balance
+        : null;
+    const insufficient =
+      sharedBalance !== null && sharedBalance < expense.baseAmount
+        ? `\n\n${t('settlement.fromSharedInsufficient', {
+            balance: formatCurrency(sharedBalance, baseCurrency, locale),
+          })}`
+        : '';
+    Alert.alert(t('expense.settleFromSharedConfirmTitle'), t('expense.settleFromSharedConfirmBody', { amount }) + insufficient, [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('expense.settleFromShared'),

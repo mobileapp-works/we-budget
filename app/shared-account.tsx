@@ -1,6 +1,6 @@
 /** 共同口座画面。残高サマリー・個人別入金・入金/出金/調整の記録・明細（共同口座払いの支出も表示）。 */
 import React, { useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
@@ -27,7 +27,13 @@ type PayerChoice = 'self' | 'partner';
 type LedgerRow =
   | { key: string; date: string; kind: 'deposit'; amount: number; currency: string; userId: UUID | null; memo: string | null }
   | { key: string; date: string; kind: 'withdrawal'; amount: number; currency: string; memo: string | null }
-  | { key: string; date: string; kind: 'expense'; amount: number; currency: string; categoryId: UUID; store: string | null; memo: string | null };
+  | { key: string; date: string; kind: 'expense'; amount: number; currency: string; baseAmount: number; categoryId: UUID; store: string | null; memo: string | null };
+
+/**
+ * 精算由来の出金メモ（サーバー/モックが description に保存する安定トークン）。
+ * 旧バージョンが保存した日本語文字列も同じ翻訳にマップする。
+ */
+const SETTLEMENT_WITHDRAWAL_MEMOS: readonly string[] = ['settlement_from_shared', '立替精算（共同口座から）'];
 
 export default function SharedAccountScreen() {
   const { t } = useTranslation();
@@ -41,7 +47,7 @@ export default function SharedAccountScreen() {
   const entriesQuery = useSharedEntries();
   const { addEntry } = useSharedAccountActions();
   // 残高は全期間のΣで計算する（当月分だけだと月替わりで過去の共同支出が消えて残高が狂う）。
-  const { data: sharedExpenses } = useSharedExpenses();
+  const sharedExpensesQuery = useSharedExpenses();
 
   const isPaired = session.pair.user2Id !== null;
 
@@ -54,7 +60,7 @@ export default function SharedAccountScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const entries = entriesQuery.data ?? [];
-  const expenses = sharedExpenses ?? [];
+  const expenses = sharedExpensesQuery.data ?? [];
 
   const balance = useMemo(
     () => calculateSharedBalance(entries, expenses, baseCurrency),
@@ -85,7 +91,7 @@ export default function SharedAccountScreen() {
     }
     for (const x of expenses) {
       if (!x.isSharedPayment) continue;
-      rows.push({ key: x.id, date: x.expenseDate, kind: 'expense', amount: x.amount, currency: x.currency, categoryId: x.categoryId, store: x.storeName, memo: x.description });
+      rows.push({ key: x.id, date: x.expenseDate, kind: 'expense', amount: x.amount, currency: x.currency, baseAmount: x.baseAmount, categoryId: x.categoryId, store: x.storeName, memo: x.description });
     }
     return rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   }, [entries, expenses]);
@@ -135,10 +141,13 @@ export default function SharedAccountScreen() {
     <Screen padded={false}>
       <ScreenHeader title={t('sharedAccount.title')} />
       <StateView
-        isLoading={entriesQuery.isLoading}
-        isError={entriesQuery.isError}
+        isLoading={entriesQuery.isLoading || sharedExpensesQuery.isLoading}
+        isError={entriesQuery.isError || sharedExpensesQuery.isError}
         isEmpty={entries.length === 0 && ledger.length === 0}
-        onRetry={() => entriesQuery.refetch()}
+        onRetry={() => {
+          void entriesQuery.refetch();
+          void sharedExpensesQuery.refetch();
+        }}
         emptyComponent={
           <EmptyState
             icon="people-circle-outline"
@@ -216,6 +225,7 @@ export default function SharedAccountScreen() {
                 row={row}
                 colors={colors}
                 locale={locale}
+                baseCurrency={baseCurrency}
                 personName={personName}
                 getCategory={getCategory}
                 getCategoryName={getCategoryName}
@@ -227,8 +237,14 @@ export default function SharedAccountScreen() {
 
       {/* 記録モーダル */}
       <Modal visible={modalOpen} transparent animationType="fade" onRequestClose={() => setModalOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setModalOpen(false)}>
-          <Pressable style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]} onPress={() => {}}>
+        {/* autoFocus の金額入力でキーボードが保存ボタンを隠さないよう、シートごと押し上げる */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.backdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setModalOpen(false)}
+            accessibilityLabel={t('common.cancel')}
+          />
+          <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]}>
             <Text style={[typography.title3, { color: colors.textPrimary, marginBottom: spacing.md }]}>
               {recordType === 'deposit' ? t('sharedAccount.depositButton') : t('sharedAccount.withdrawButton')}
             </Text>
@@ -297,8 +313,8 @@ export default function SharedAccountScreen() {
 
             <Button title={t('common.save')} onPress={handleSave} loading={addEntry.isPending} />
             <Button title={t('common.cancel')} variant="text" onPress={() => setModalOpen(false)} />
-          </Pressable>
-        </Pressable>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
@@ -317,6 +333,7 @@ function LedgerItem({
   row,
   colors,
   locale,
+  baseCurrency,
   personName,
   getCategory,
   getCategoryName,
@@ -324,6 +341,7 @@ function LedgerItem({
   row: LedgerRow;
   colors: ReturnType<typeof useTheme>['colors'];
   locale: string;
+  baseCurrency: string;
   personName: (userId: UUID | null) => string;
   getCategory: ReturnType<typeof useExpenseHelpers>['getCategory'];
   getCategoryName: ReturnType<typeof useExpenseHelpers>['getCategoryName'];
@@ -343,6 +361,10 @@ function LedgerItem({
   } else if (row.kind === 'withdrawal') {
     icon = <Ionicons name="arrow-up-circle" size={26} color={colors.textSecondary} />;
     title = t('sharedAccount.withdraw');
+    // 精算由来の出金はトークンで保存されるため、表示時に受信者の言語へ翻訳する。
+    subtitle = row.memo && SETTLEMENT_WITHDRAWAL_MEMOS.includes(row.memo)
+      ? t('sharedAccount.settlementFromShared')
+      : row.memo;
     amountText = `−${formatCurrency(row.amount, row.currency, locale)}`;
     amountColor = colors.textPrimary;
   } else {
@@ -353,8 +375,12 @@ function LedgerItem({
       <Ionicons name="cart-outline" size={26} color={colors.textSecondary} />
     );
     title = getCategoryName(row.categoryId) || t('sharedAccount.spent');
-    subtitle = row.store ?? row.memo;
-    amountText = `−${formatCurrency(row.amount, row.currency, locale)}`;
+    const isForeign = row.currency !== baseCurrency;
+    // 残高は基準通貨換算（baseAmount）で動くため、外貨支出は換算額を主表示にし原通貨を添える。
+    subtitle = isForeign
+      ? [formatCurrency(row.amount, row.currency, locale), row.store ?? row.memo].filter(Boolean).join(' ・ ')
+      : row.store ?? row.memo;
+    amountText = `−${formatCurrency(isForeign ? row.baseAmount : row.amount, isForeign ? baseCurrency : row.currency, locale)}`;
     amountColor = colors.textPrimary;
   }
 
@@ -397,6 +423,7 @@ function ChipRow({
             onPress={() => onSelect(item.key)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            hitSlop={4}
             style={[styles.chip, { borderColor: colors.border, backgroundColor: selected ? colors.primary : colors.surface }]}
           >
             <Text style={[typography.subhead, { color: selected ? colors.primaryText : colors.textSecondary }]}>

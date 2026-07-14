@@ -67,6 +67,7 @@ export default function HistoryScreen() {
               onPress={() => setFilter(id)}
               accessibilityRole="button"
               accessibilityState={{ selected }}
+              hitSlop={4}
               style={[
                 styles.chip,
                 { borderColor: colors.border, backgroundColor: selected ? colors.primary : colors.surface },

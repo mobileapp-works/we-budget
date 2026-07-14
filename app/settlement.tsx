@@ -9,13 +9,15 @@ import {
   useSettlementBalance,
   useSettlements,
   useSettlementActions,
+  useSharedEntries,
+  useSharedExpenses,
   useSplitRatio,
   useLocale,
 } from '@/hooks';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/providers/ToastProvider';
 import { spacing, typography } from '@/constants';
-import { formatCurrency, formatDate } from '@/utils';
+import { calculateSharedBalance, formatCurrency, formatDate } from '@/utils';
 import type { UUID } from '@/types/models';
 
 export default function SettlementScreen() {
@@ -29,9 +31,18 @@ export default function SettlementScreen() {
   const settlementsQuery = useSettlements();
   const { settle, settleFromShared } = useSettlementActions();
   const { myPercent, save: saveSplitRatio, saving: savingRatio } = useSplitRatio();
+  // 共同口座から精算する際の残高不足警告用（キャッシュ済みなら追加通信なし）。
+  const sharedEntriesQuery = useSharedEntries();
+  const sharedExpensesQuery = useSharedExpenses();
 
   const isPaired = session.pair.user2Id !== null;
   const balance = balanceQuery.data;
+
+  /** 共同口座の現在残高。データ未取得の間は null（警告を出さないだけで実行は妨げない）。 */
+  const sharedBalance =
+    sharedEntriesQuery.data && sharedExpensesQuery.data
+      ? calculateSharedBalance(sharedEntriesQuery.data, sharedExpensesQuery.data, session.pair.baseCurrency).balance
+      : null;
 
   const handleSaveRatio = (mine: number) => {
     saveSplitRatio(mine, {
@@ -74,12 +85,19 @@ export default function SettlementScreen() {
   // まとめて共同口座から精算（ネット残高ぶんを共同口座から立替者へ払い戻す）。
   const confirmSettleFromShared = () => {
     if (!balance || balance.settlementAmount <= 0) return;
+    // 共同口座の残高が足りない場合は、マイナスになることを確認文に明示する。
+    const insufficient =
+      sharedBalance !== null && sharedBalance < balance.settlementAmount
+        ? `\n\n${t('settlement.fromSharedInsufficient', {
+            balance: formatCurrency(sharedBalance, session.pair.baseCurrency, locale),
+          })}`
+        : '';
     Alert.alert(
       t('settlement.fromSharedConfirmTitle'),
       t('settlement.fromSharedConfirmBody', {
         to: nameOf(balance.toUserId),
         amount: formatCurrency(balance.settlementAmount, balance.currency, locale),
-      }),
+      }) + insufficient,
       [
         { text: t('common.cancel'), style: 'cancel' },
         {

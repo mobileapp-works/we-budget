@@ -1,6 +1,20 @@
 # 実装ログ（WeBudget）
 
-> 最終更新: 2026-07-09（0011・0012 適用済み・**0013（notify_partner の public 剥奪）要適用**・レシートOCR品質強化）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+> 最終更新: 2026-07-14（リリース前最終レビューの指摘を修正・**0021 要適用**・0013/0014 も未適用なら要適用）。スレッド/モデルを切り替えながら開発するため、**このファイルが現状の正**。着手前にここを読むこと。
+
+## 2026-07-14 リリース前最終レビュー指摘の修正（migration 0021・**要適用**）
+
+最終レビュー（本スレッド）で挙がった「安全に直せる項目」を一括修正。検証: **typecheck 0 / jest 189 / i18n ja=en 335キー / expo export 成功**。仕様変更を伴うもの（精算済み支出の編集ロック・履歴の月送り等）は据え置き。
+
+- **iPad提出ブロッカー回避**: `app.json` に `ios.requireFullScreen: true` を追加。`supportsTablet:true` + `orientation:portrait` のままだと ITMS-90474（iPad multitasking requires all orientations）でアップロードが弾かれ得るため。
+- **Apple公式サインインボタン**: ログイン画面のApple ボタンを `AppleAuthentication.AppleAuthenticationButton`（CONTINUE型・ダーク時WHITE/ライト時BLACK・高さ48）に差し替え（HIG準拠）。ネイティブ非対応環境（Expo Go Android等）のモック確認用に従来ボタンをフォールバックとして残置。
+- **バナーの下端SafeArea**: `BannerAdSlot` が `BottomTabBarHeightContext`（タブ外では undefined）で判別し、**スタック画面のみ** `useSafeAreaInsets().bottom` を paddingBottom に追加。タブ画面はタブバーが吸収するため従来どおり0（見た目の変化なし）。
+- **`0021_settlement_lock_and_withdrawal_i18n.sql`（要 SQL Editor 適用）**: ①精算3関数（execute_settlement / execute_settlement_from_shared / settle_expense）の権限チェック直後に `pg_advisory_xact_lock(hashtext(pair_id))` を追加（2人同時精算で settlements が二重記録されるTOCTOU対策。settle_expense はロック取得後に支出行を読み直す）②共同口座出金の description を日本語固定文字列→安定トークン `'settlement_from_shared'` に変更。3関数とも 0015/0020 の定義を完全踏襲し、変更はロックと description のみ。revoke/grant 再適用込み。mockBackend も同トークンに揃えた。
+- **共同口座画面**: 出金明細のトークン（+旧日本語文字列）を `t('sharedAccount.settlementFromShared')` で翻訳表示／StateView に sharedExpenses クエリの loading/error を合成（残高の一瞬過大表示を解消）／外貨の共同口座払いは**基準通貨換算額を主表示**にし原通貨をサブタイトルに併記（残高との整合）／記録モーダルを KeyboardAvoidingView 化（autoFocus の金額入力でキーボードが保存ボタンを隠す問題）。
+- **共同口座から精算の確認ダイアログ**: 残高不足なら「実行するとマイナスになる」警告を追記（settlement.tsx のまとめ精算・expense/[id].tsx の個別とも。`settlement.fromSharedInsufficient`）。個別版は確認金額を**基準通貨の baseAmount** で表示（実際に残高が動く額）に修正し、文言に「精算履歴には残らず共同口座払い表示になる」ことを明示（ja/en）。※個別版の記帳モデル（updateExpense での isSharedPayment 化）自体は据え置き＝まとめ版（settlements+withdrawal）との一本化は v1.1 検討。
+- **入力まわり**: 支出保存でカテゴリ未選択時に無言returnせず `error.categoryRequired` をトースト／OCRの誤読による**未来日**は採用しない（ピッカーの maximumDate=今日 と整合）／高さ44pt未満のチップ（履歴フィルタ・入力/共同口座のChipRow）に hitSlop=4 を追加。
+- i18n 追加キー: `settlement.fromSharedInsufficient` / `sharedAccount.settlementFromShared` / `error.categoryRequired`、更新: `expense.settleFromSharedHint` / `expense.settleFromSharedConfirmBody`（ja/en とも。335キーでパリティ維持）。
+- **残（このレビュー由来の外部作業）**: 0021 の SQL Editor 適用（+未適用なら 0013/0014 も）／審査用デモアカウント（シードデータ入り）／AdMobコンソールで ATTメッセージ+GDPR同意フォーム構成→実機ATT確認／App Privacy 入力／TestFlight でバナー下端・ダークモード・共同口座モーダルの実機目視。
 
 ## 2026-07-09 内部関数の EXECUTE 権限修正（migration 0012・**要適用**）
 

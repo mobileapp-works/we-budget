@@ -128,7 +128,8 @@ export default function ExpenseInputScreen() {
     if (result.storeName) setStore(result.storeName);
     if (result.date) {
       const d = new Date(result.date);
-      if (!Number.isNaN(d.getTime())) setDate(d);
+      // 誤読で未来日になったものは採用しない（手動ピッカーの maximumDate=今日 と揃える）。
+      if (!Number.isNaN(d.getTime()) && d.getTime() <= Date.now()) setDate(d);
     }
   };
 
@@ -195,7 +196,11 @@ export default function ExpenseInputScreen() {
       toast.show(t('expense.rateRequired'), 'error');
       return;
     }
-    if (!categoryId) return;
+    if (!categoryId) {
+      // カテゴリ0件（全非表示等）の稀なケース。無言で失敗させず理由を伝える。
+      toast.show(t('error.categoryRequired'), 'error');
+      return;
+    }
     setError(null);
     setSaving(true);
 
@@ -442,6 +447,7 @@ function ChipRow({
             onPress={() => onSelect(item.key)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            hitSlop={4}
             style={[
               styles.chip,
               { borderColor: colors.border, backgroundColor: selected ? colors.primary : colors.surface },

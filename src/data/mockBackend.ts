@@ -682,6 +682,7 @@ export const mockBackend: Backend = {
     }
     state.settlements.unshift(settlement);
     // 共同口座から精算額を出金（立替者へ払い戻し）。当事者は付けない（共同扱い）。
+    // description は表示文字列ではなく安定トークン（shared-account.tsx が言語別に翻訳）。SQL 0021 と同一。
     state.shared.push({
       id: uid('sa'),
       pairId: state.pair.id,
@@ -689,7 +690,7 @@ export const mockBackend: Backend = {
       userId: null,
       amount: balance.settlementAmount,
       currency: balance.currency,
-      description: '立替精算（共同口座から）',
+      description: 'settlement_from_shared',
       transactionDate: dayjs().format('YYYY-MM-DD'),
     });
     return { ...settlement };

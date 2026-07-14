@@ -71,10 +71,12 @@
 
 | # | 項目 | 状態 | 反映作業 |
 |---|------|------|---------|
-| 6-1 | migration 0014（精算残高RPCの権限）| 🟨 | Supabase SQL Editor で適用（監査 F-1） |
+| 6-1 | migration 0014（精算残高RPCの権限）| 🟨 | Supabase SQL Editor で適用（監査 F-1）※0015/0016 適用済みなら実質カバー済み。要確認 |
 | 6-2 | migration 0013（notify_partner権限剥奪）| 🟨 | 適用＋`docs/test_cases.md §6` の検証 |
 | 6-3 | send-push-notification 再デプロイ | 🟨 | `supabase functions deploy send-push-notification`（監査 I-4） |
 | 6-4 | A-2/A-5/B-1/I-5 | 🟨 | 次のEASビルドで自動反映（追加作業なし） |
+| 6-5 | **migration 0021（精算の排他ロック＋出金メモi18n）** | 🟨 | SQL Editor で適用（2026-07-14 最終レビュー対応。implementation_log 参照） |
+| 6-6 | apple-link デプロイ＋Appleシークレット設定 | 🔲 | 未設定だとアカウント削除時に Apple トークン revoke がスキップされる（Apple 削除要件） |
 
 ## 7. 外部管理画面（AdMob / Apple）
 

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Screen, Button, TextField } from '@/components';
@@ -9,7 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuthActions } from '@/hooks';
 import { backend } from '@/data';
 import { useToast } from '@/providers/ToastProvider';
-import { spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
 import { IS_MOCK } from '@/lib/env';
 import { OAuthCancelledError, isAppleAuthAvailable, signInWithApple, signInWithGoogle } from '@/lib/oauth';
 import { authErrorKey } from '@/lib/authErrors';
@@ -18,7 +19,7 @@ type OAuthProvider = 'apple' | 'google';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const { signIn, signInWithProvider } = useAuthActions();
@@ -119,14 +120,33 @@ export default function LoginScreen() {
 
           {showApple ? (
             <>
-              <Button
-                title={t('auth.continueWithApple')}
-                variant="secondary"
-                loading={oauthLoading === 'apple'}
-                disabled={oauthLoading !== null}
-                left={<Ionicons name="logo-apple" size={18} color={colors.textPrimary} />}
-                onPress={() => handleOAuth('apple')}
-              />
+              {appleAvailable ? (
+                // Apple公式のサインインボタン（HIG準拠・OSが文言をローカライズする）。
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                  buttonStyle={
+                    isDark
+                      ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                      : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                  }
+                  cornerRadius={radius.sm}
+                  style={[styles.appleButton, oauthLoading !== null && styles.appleButtonBusy]}
+                  onPress={() => {
+                    if (oauthLoading !== null) return; // 多重押下防止（他プロバイダ処理中も含む）
+                    void handleOAuth('apple');
+                  }}
+                />
+              ) : (
+                // ネイティブ非対応（Expo Go の Android 等）でのモック確認用フォールバック。
+                <Button
+                  title={t('auth.continueWithApple')}
+                  variant="secondary"
+                  loading={oauthLoading === 'apple'}
+                  disabled={oauthLoading !== null}
+                  left={<Ionicons name="logo-apple" size={18} color={colors.textPrimary} />}
+                  onPress={() => handleOAuth('apple')}
+                />
+              )}
               <View style={{ height: spacing.sm }} />
             </>
           ) : null}
@@ -155,5 +175,8 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', marginBottom: spacing.xl },
   divider: { marginVertical: spacing.lg },
   line: { height: StyleSheet.hairlineWidth },
+  // Apple公式ボタン。高さは他ボタン（minHeight 48）と揃える。
+  appleButton: { width: '100%', height: 48 },
+  appleButtonBusy: { opacity: 0.4 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
 });

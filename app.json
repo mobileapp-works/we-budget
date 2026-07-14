@@ -13,6 +13,7 @@
     ],
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.mobileappworks.webudget",
       "buildNumber": "1",
       "usesAppleSignIn": true,
