@@ -16,17 +16,17 @@
 
 ---
 
-## 1. ストア掲載情報（→ 08_aso / 成果物 `docs/aso_plan.md`）
+## 1. ストア掲載情報（→ **[aso_plan.md](aso_plan.md) に全文作成済。ASCへコピペするだけ**）
 
 | # | 項目 | 上限 | 状態 | メモ |
 |---|------|------|------|------|
-| 1-1 | アプリ名 | 30字 | 🔲 | ストア表示名は "WeBudget" 確定。副題キーワードを付けるか |
-| 1-2 | サブタイトル | 30字 | 🔲 | 主要価値提案を一文で |
-| 1-3 | 説明文（概要） | 4000字 | 🔲 | 1行目フックが最重要 |
-| 1-4 | キーワード | 100字 | 🔲 | 100字フル活用。日英で別 |
-| 1-5 | プロモーションテキスト | 170字 | 🔲 | 後から差し替え可 |
-| 1-6 | カテゴリ（プライマリ/セカンダリ） | - | 🔲 | 「ファイナンス」想定 |
-| 1-7 | 日英ローカライズ | - | 🔲 | 全項目を ja/en 両方 |
+| 1-1 | アプリ名 | 30字 | ✅ | `WeBudget - ふたりの家計簿・立替精算`(23字)。**競合 "We Budget: カップル家計簿" が既存**のため識別子を付与 |
+| 1-2 | サブタイトル | 30字 | ✅ | `レシート撮影で記録、立替は自動精算`(17字) |
+| 1-3 | 説明文（概要） | 4000字 | ✅ | 会話フック始まり・機能7ブロック構成 |
+| 1-4 | キーワード | 100字 | ✅ | 日96字 / 英97字 |
+| 1-5 | プロモーションテキスト | 170字 | ✅ | |
+| 1-6 | カテゴリ（プライマリ/セカンダリ） | ✅ | ファイナンス / ライフスタイル |
+| 1-7 | 日英ローカライズ | - | ✅ | 全項目 ja/en 作成済 |
 
 ## 2. 画像アセット（撮影計画 → [screenshot_plan.md](screenshot_plan.md)）
 
@@ -42,9 +42,9 @@
 
 | # | 項目 | 要否 | 状態 | メモ |
 |---|------|------|------|------|
-| 3-1 | プライバシーポリシーURL | **必須** | ✅ | 2026-07-14 公開確認済（ja/en・AdMob/Supabase/端末内OCRの記載が実装と整合）|
+| 3-1 | プライバシーポリシーURL | **必須** | ✅ | 2026-07-14 main push → Pages反映確認。**最終更新07-12版が公開中**（レシート画像のStorage保管・AdMobのIDFA取得を明記）。監査A-7の不整合は解消 |
 | 3-2 | プライバシーポリシー日英 | **必須** | ✅ | `docs/privacy-policy.html`（ja/en同梱、Sentry記述削除済） |
-| 3-3 | サポートURL | **必須** | 🔲 | 問い合わせ先が分かるページ。専用サイト不要（要作成 or GitHub Pages流用） |
+| 3-3 | サポートURL | **必須** | ✅ | `https://mobileapp-works.github.io/we-budget/support.html`（日英FAQ+問い合わせ先 taishirou16@outlook.com）|
 | 3-4 | マーケティングURL | 任意 | ❓ | 宣伝LP。審査には不要。集客したければ後日 |
 
 ## 4. 審査情報（App Store Connect）
@@ -63,7 +63,7 @@
 | # | 項目 | 状態 | メモ |
 |---|------|------|------|
 | 5-1 | App Privacy 入力（Nutrition Label） | 🔲 | 実装と整合（監査 A-7 High）。OCRは端末内/画像はStorage保存/広告AdMobはIdentifiers・Usage Data・Device ID=Trackingに該当 |
-| 5-2 | Privacy Manifest 網羅 | ⏳ | app.json に4種宣言済。**ビルド後の集約 `PrivacyInfo.xcprivacy` を目視**（監査 A-1 High） |
+| 5-2 | Privacy Manifest 網羅 | ✅ | **2026-07-14 build#21 のIPAを実地検証**。本体manifestは4カテゴリ宣言＋Expoが理由コード補完（`C617.1/0A2A.1/3B52.1`, `CA92.1/C56D.1`, `35F9.1`, `E174.1/85F4.1`）。サードSDK27件が各自 `.xcprivacy` 同梱（AdMob/UMP/GoogleSignIn等）。AdMobは `DeviceID` を `Tracking:true` で自己申告。ITMS-91053リスクなし |
 | 5-3 | ATT 利用目的文言 | ✅ | `NSUserTrackingUsageDescription` 設定済 |
 | 5-4 | AI同意（端末内OCR説明） | ✅ | 端末内処理・外部送信なしで整合 |
 
@@ -71,12 +71,12 @@
 
 | # | 項目 | 状態 | 反映作業 |
 |---|------|------|---------|
-| 6-1 | migration 0014（精算残高RPCの権限）| 🟨 | Supabase SQL Editor で適用（監査 F-1）※0015/0016 適用済みなら実質カバー済み。要確認 |
-| 6-2 | migration 0013（notify_partner権限剥奪）| 🟨 | 適用＋`docs/test_cases.md §6` の検証 |
-| 6-3 | send-push-notification 再デプロイ | 🟨 | `supabase functions deploy send-push-notification`（監査 I-4） |
-| 6-4 | A-2/A-5/B-1/I-5 | 🟨 | 次のEASビルドで自動反映（追加作業なし） |
-| 6-5 | **migration 0021（精算の排他ロック＋出金メモi18n）** | 🟨 | SQL Editor で適用（2026-07-14 最終レビュー対応。implementation_log 参照） |
-| 6-6 | apple-link デプロイ＋Appleシークレット設定 | 🔲 | 未設定だとアカウント削除時に Apple トークン revoke がスキップされる（Apple 削除要件） |
+| 6-1 | migration 0014（精算残高RPCの権限）| ✅ | 適用済（2026-07-14 ユーザー確認） |
+| 6-2 | migration 0013（notify_partner権限剥奪）| ✅ | 適用済（2026-07-14 ユーザー確認） |
+| 6-3 | send-push-notification 再デプロイ | ✅ | デプロイ済（2026-07-14 ユーザー確認） |
+| 6-4 | A-2/A-5/B-1/I-5 | ✅ | build#21 に反映済 |
+| 6-5 | migration 0021（精算の排他ロック＋出金メモi18n） | ✅ | 適用済（2026-07-14 ユーザー確認） |
+| 6-6 | apple-link デプロイ＋Appleシークレット設定 | ✅ | デプロイ済（2026-07-14 ユーザー確認） |
 
 ## 7. 外部管理画面（AdMob / Apple）
 
@@ -93,7 +93,7 @@
 | # | 項目 | 状態 | メモ |
 |---|------|------|------|
 | 8-1 | `npx expo-doctor` / 検証ゲート通過 | ✅ | 2026-07-14: expo-doctor **18/18**、typecheck **0**、jest **189 passed / 9 suites**。EASログイン済（taishiro16）|
-| 8-2 | `eas build --platform ios --profile production` | ⏳ | 2026-07-14 キュー投入（build `2c072e53`, HEAD=1833ee3, build番号18予定）。証明書/プロファイル有効(〜2026-12-30)。**過去実績でキュー待ち数時間〜2日** |
+| 8-2 | `eas build --platform ios --profile production` | ✅ | 2026-07-14 **完了**（build `2c072e53` / **build番号21** / commit `1833ee3` / 所要5分）。IPA取得可 |
 | 8-3 | TestFlight で実機確認 | 🔲 | ビルド完了後。**スクショ撮影もこのビルドで行う** |
 | 8-4 | `eas submit --platform ios` | 🔲 | |
 | 8-5 | 審査提出 | 🔲 | |

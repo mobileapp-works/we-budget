@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サポート / Support — WeBudget</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="lang-switch">
+      <button id="btn-ja" class="active" onclick="switchLang('ja')">日本語</button>
+      <button id="btn-en" onclick="switchLang('en')">English</button>
+    </div>
+
+    <div id="ja" class="section active">
+      <div class="doc-header">
+        <h1>サポート</h1>
+        <div class="doc-meta"><span>WeBudget</span><span>ふたりの家計簿・立替精算</span></div>
+      </div>
+
+      <h2>お問い合わせ</h2>
+      <p>ご質問・不具合のご報告は、以下のメールアドレスまでご連絡ください。通常2〜3営業日以内に返信します。</p>
+      <p><strong><a href="mailto:taishirou16@outlook.com">taishirou16@outlook.com</a></strong></p>
+      <p>不具合のご報告の際は、以下をお知らせいただけると調査が早くなります。</p>
+      <ul>
+        <li>ご利用の端末（例: iPhone 15 / iPad Pro）と iOS のバージョン</li>
+        <li>アプリのバージョン（設定 &gt; アプリについて &gt; バージョン に表示されます）</li>
+        <li>どの画面で、何をしたときに起きたか</li>
+      </ul>
+
+      <h2>よくある質問</h2>
+
+      <h3>パートナーとペアになるには？</h3>
+      <p>設定 &gt; プロフィール &gt; パートナー から招待コードを共有するか、相手のコードを入力してください。ひとりで始めて、あとから招待することもできます。</p>
+
+      <h3>レシートの読み取りがうまくいきません</h3>
+      <p>明るい場所で、レシート全体が入るように真上から撮影してください。合計金額の行にピントが合っていると精度が上がります。読み取れない場合は手動で入力できます。</p>
+
+      <h3>レシートの画像はどこへ送られますか？</h3>
+      <p>文字の読み取り（OCR）は<strong>お使いの端末の中だけ</strong>で行われ、読み取りのために画像が外部へ送信されることはありません。保存したレシート画像は、あなたとパートナーが後から見返せるよう、当アプリの安全なクラウドストレージ（Supabase）に保管されます。</p>
+
+      <h3>立替の精算はどう計算されますか？</h3>
+      <p>「自分が払った」「パートナーが払った」「共同口座から払った」の記録と、設定した負担割合（既定は50:50）から、立替残高を自動計算します。共同口座から払った分は精算の対象外です。</p>
+
+      <h3>負担割合を変えたい</h3>
+      <p>設定 &gt; プロフィール &gt; 負担割合、または精算画面から変更できます。50:50 以外の任意の割合を設定できます。</p>
+
+      <h3>固定費が自動で計上されません</h3>
+      <p>固定費（毎月同じ金額）は設定した計上日に自動記録されます。変動費（毎月金額が変わる）は自動計上されず、リマインド日に通知でお知らせしますので、ご自身で入力してください。</p>
+
+      <h3>通知が届きません</h3>
+      <p>iOS の設定 &gt; WeBudget &gt; 通知 が許可されているかご確認ください。アプリ内の 設定 &gt; 通知設定 で種類ごとのON/OFFも切り替えられます。</p>
+
+      <h3>ペアを解除するとデータはどうなりますか？</h3>
+      <p>ご自身が記録した支出は引き続き閲覧できます。未精算の立替がある場合は、解除前の精算をおすすめします。</p>
+
+      <h3>アカウントを削除したい</h3>
+      <p>設定 &gt; アカウント &gt; アカウントを削除 から実行できます。削除すると元に戻せません。パートナーと共有した家計データは相手の記録として匿名化のうえ保持されます。</p>
+
+      <h3>広告を消せますか？</h3>
+      <p>現在のバージョンでは広告の非表示オプションはありません。今後のアップデートで提供を検討しています。</p>
+
+      <h2>プライバシーポリシー</h2>
+      <p><a href="privacy-policy.html">プライバシーポリシーはこちら</a></p>
+    </div>
+
+    <div id="en" class="section">
+      <div class="doc-header">
+        <h1>Support</h1>
+        <div class="doc-meta"><span>WeBudget</span><span>Couples budget &amp; expense splitting</span></div>
+      </div>
+
+      <h2>Contact</h2>
+      <p>For questions or bug reports, please email us. We usually reply within 2–3 business days.</p>
+      <p><strong><a href="mailto:taishirou16@outlook.com">taishirou16@outlook.com</a></strong></p>
+      <p>When reporting a bug, it helps to include:</p>
+      <ul>
+        <li>Your device (e.g. iPhone 15 / iPad Pro) and iOS version</li>
+        <li>App version (Settings &gt; About &gt; Version)</li>
+        <li>Which screen you were on and what you did</li>
+      </ul>
+
+      <h2>FAQ</h2>
+
+      <h3>How do I pair with my partner?</h3>
+      <p>Go to Settings &gt; Profile &gt; Partner and share your invite code, or enter your partner's code. You can also start solo and invite them later.</p>
+
+      <h3>Receipt scanning isn't working</h3>
+      <p>Shoot from directly above in good light, with the whole receipt in frame. Focusing on the total line improves accuracy. You can always enter the amount manually.</p>
+
+      <h3>Where are my receipt images sent?</h3>
+      <p>Text recognition (OCR) runs <strong>entirely on your device</strong> — your image is never sent anywhere for OCR. Saved receipt images are stored in the app's secure cloud storage (Supabase) so you and your partner can view them later.</p>
+
+      <h3>How is the balance calculated?</h3>
+      <p>From who paid (you, your partner, or the joint account) and your split ratio (50:50 by default). Purchases paid from the joint account are excluded from reimbursement.</p>
+
+      <h3>Can I change the split ratio?</h3>
+      <p>Yes — Settings &gt; Profile &gt; Split ratio, or from the settlement screen. Any ratio is supported.</p>
+
+      <h3>My fixed costs aren't posting automatically</h3>
+      <p>Fixed costs (same amount monthly) post automatically on the billing day you set. Variable costs (amount changes monthly) are not posted automatically — you'll get a reminder to enter them.</p>
+
+      <h3>I'm not receiving notifications</h3>
+      <p>Check iOS Settings &gt; WeBudget &gt; Notifications. You can also toggle each type in the app under Settings &gt; Notification settings.</p>
+
+      <h3>What happens to my data if we unpair?</h3>
+      <p>You can still view expenses you recorded. If you have an outstanding balance, we recommend settling up before unpairing.</p>
+
+      <h3>How do I delete my account?</h3>
+      <p>Settings &gt; Account &gt; Delete account. This cannot be undone. Household data shared with your partner is anonymised and kept as their record.</p>
+
+      <h3>Can I remove ads?</h3>
+      <p>Not in the current version. We're considering an ad-free option in a future update.</p>
+
+      <h2>Privacy Policy</h2>
+      <p><a href="privacy-policy.html">Read our Privacy Policy</a></p>
+    </div>
+
+    <div class="doc-footer">WeBudget — Support</div>
+  </div>
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
+      document.getElementById(lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+  </script>
+</body>
+</html>
