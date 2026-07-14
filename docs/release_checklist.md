@@ -34,7 +34,7 @@
 |---|------|------|------|------|
 | 2-1 | アプリアイコン | 1024×1024 透過なし | ✅ | `assets/icon.png` |
 | 2-2 | スクショ 6.9" iPhone | 1290×2796 | 🔲 | **必須**。撮る画面5枚＋ChatGPTプロンプト確定済 → 実機で撮影 |
-| 2-3 | スクショ 13" iPad | 2064×2752 | 🔲 | **必須**（iPad対応）。**13"iPad実機の確保が前提**（無ければ要相談） |
+| 2-3 | スクショ 13" iPad | 2064×2752 | 🔲 | **必須**（iPad対応）。13"iPad実機は確保可（2026-07-14確認）→ iPad対応維持で進行 |
 | 2-4 | スクショのキャッチコピー | - | ✅ | 5枚分の日英コピー確定（screenshot_plan.md A章） |
 | 2-5 | プレビュー動画 | 任意 | ❓ | 作るなら後回しでOK |
 
@@ -42,7 +42,7 @@
 
 | # | 項目 | 要否 | 状態 | メモ |
 |---|------|------|------|------|
-| 3-1 | プライバシーポリシーURL | **必須** | 🟨 | `https://mobileapp-works.github.io/we-budget/privacy-policy.html`。GitHub Pages 有効化＆200到達を最終確認 |
+| 3-1 | プライバシーポリシーURL | **必須** | ✅ | 2026-07-14 公開確認済（ja/en・AdMob/Supabase/端末内OCRの記載が実装と整合）|
 | 3-2 | プライバシーポリシー日英 | **必須** | ✅ | `docs/privacy-policy.html`（ja/en同梱、Sentry記述削除済） |
 | 3-3 | サポートURL | **必須** | 🔲 | 問い合わせ先が分かるページ。専用サイト不要（要作成 or GitHub Pages流用） |
 | 3-4 | マーケティングURL | 任意 | ❓ | 宣伝LP。審査には不要。集客したければ後日 |
@@ -82,8 +82,8 @@
 
 | # | 項目 | 状態 | メモ |
 |---|------|------|------|
-| 7-1 | **AdMob androidAppId が本番か** | 🔲 | app.json のは**テストID**（`~3347511713`）。iOSは独自値だが本番か要確認。iOS先行なら iOS優先で確定 |
-| 7-2 | 広告ユニットID（バナー/インタースティシャル）本番化 | 🔲 | `src/lib/ads.ts` を確認。テストIDのままにしない |
+| 7-1 | AdMob androidAppId が本番か | ⏸ | app.json のはテストID（`~3347511713`）だが **Android は今回出荷しないため保留でOK**。Android対応時に必須 |
+| 7-2 | 広告ユニットID（バナー/インタースティシャル）本番化 | ✅ | eas.json `production` に iOS本番ID設定済（banner `…/5911371023` / interstitial `…/6841309311`）。`ads.ts` は未設定時テストIDへフォールバックする安全設計 |
 | 7-3 | AdMob ATTメッセージ + GDPR同意フォーム構成 | 🔲 | AdMobコンソールで作成・公開（監査 A-6）。実機でATT表示確認 |
 | 7-4 | Apple Developer Program 登録 | ❓ | 登録済みか確認 |
 | 7-5 | App Store Connect にアプリ枠作成 | 🔲 | 新規App作成 |
@@ -92,9 +92,9 @@
 
 | # | 項目 | 状態 | メモ |
 |---|------|------|------|
-| 8-1 | `npx expo-doctor` / `expo export` 通過 | 🔲 | ビルド前ゲート |
-| 8-2 | `eas build --platform ios --profile production` | 🔲 | |
-| 8-3 | TestFlight で実機確認 | 🔲 | |
+| 8-1 | `npx expo-doctor` / 検証ゲート通過 | ✅ | 2026-07-14: expo-doctor **18/18**、typecheck **0**、jest **189 passed / 9 suites**。EASログイン済（taishiro16）|
+| 8-2 | `eas build --platform ios --profile production` | ⏳ | 2026-07-14 キュー投入（build `2c072e53`, HEAD=1833ee3, build番号18予定）。証明書/プロファイル有効(〜2026-12-30)。**過去実績でキュー待ち数時間〜2日** |
+| 8-3 | TestFlight で実機確認 | 🔲 | ビルド完了後。**スクショ撮影もこのビルドで行う** |
 | 8-4 | `eas submit --platform ios` | 🔲 | |
 | 8-5 | 審査提出 | 🔲 | |
 
