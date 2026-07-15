@@ -44,3 +44,7 @@ supabase/.temp/
 
 # expo export tmp
 .tmp-export/
+
+# ストア用スクショの生成物（raw/ から `node scripts/make-store-screenshots.js` で再生成できる）
+# 原本の assets/store/raw/ は再取得できないのでコミットする
+assets/store/out/

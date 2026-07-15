@@ -18,21 +18,32 @@
 
 ### 入力する収集データ
 
-| データ種別 | 収集 | App機能 | 分析 | 開発者広告 | 第三者広告 | **ユーザーにリンク** | **トラッキング** |
-|-----------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **連絡先情報 > メールアドレス** | ✓ | ✓ | | | | ✓ | |
-| **ユーザーコンテンツ > 写真またはビデオ**（レシート画像・プロフィール画像） | ✓ | ✓ | | | | ✓ | |
-| **ユーザーコンテンツ > その他のユーザーコンテンツ**（支出・メモ・店名） | ✓ | ✓ | | | | ✓ | |
-| **識別子 > ユーザーID** | ✓ | ✓ | | | | ✓ | |
-| **識別子 > デバイスID** | ✓ | | ✓ | ✓ | ✓ | ✓ | **✓** |
-| **使用状況データ > 広告データ** | ✓ | | ✓ | ✓ | ✓ | ✓ | **✓** |
-| **使用状況データ > 製品インタラクション** | ✓ | | ✓ | ✓ | ✓ | ✓ | |
-| **診断 > クラッシュデータ** | ✓ | | ✓ | | | | |
-| **診断 > パフォーマンスデータ** | ✓ | | ✓ | | | | |
-| **位置情報 > 大まかな位置情報** | ✓ | | ✓ | ✓ | ✓ | ✓ | |
+> **出典**: 下段7種は **build#21 の IPA 内 `GoogleMobileAdsResources.bundle/PrivacyInfo.xcprivacy` を実読して転記**（2026-07-15）。
+> ASC の申告が SDK の自己申告とズレると 5.1 系リジェクト要因になるため、**推測せず SDK の申告に合わせる**こと。
 
-> **DeviceID / 広告データの「トラッキング」に必ずチェック**。AdMob の自己申告と一致させる（不一致は 5.1 系リジェクト要因）。
-> 位置情報・診断・製品インタラクションは **AdMob SDK が申告している分**。自社コードでは取得していないが、SDK同梱分も申告対象。
+| データ種別 | 用途（ASCでチェックする項目） | **リンク** | **トラッキング** |
+|-----------|------------------------------|:---:|:---:|
+| **連絡先情報 > メールアドレス** | アプリの機能 | ✓ | |
+| **金融情報 > その他の金融情報**（支出額・予算・精算額・共同口座残高） | アプリの機能 | ✓ | |
+| **ユーザーコンテンツ > 写真またはビデオ**（レシート画像・プロフィール画像） | アプリの機能 | ✓ | |
+| **ユーザーコンテンツ > その他のユーザーコンテンツ**（メモ・店名） | アプリの機能 | ✓ | |
+| **識別子 > ユーザーID** | アプリの機能 | ✓ | |
+| **識別子 > デバイスID** | 第三者広告 / 開発者広告 / アナリティクス | ✓ | **✓** |
+| **使用状況データ > 広告データ** | 第三者広告 / 開発者広告 / アナリティクス | ✓ | |
+| **使用状況データ > 製品の操作** | 第三者広告 / 開発者広告 / アナリティクス | ✓ | |
+| **位置情報 > 大まかな位置情報** | 第三者広告 / 開発者広告 / アナリティクス | ✓ | |
+| **診断 > クラッシュデータ** | アナリティクス | | |
+| **診断 > パフォーマンスデータ** | 第三者広告 / 開発者広告 / アナリティクス | | |
+| **診断 > その他の診断データ** | 第三者広告 / 開発者広告 / アナリティクス | | |
+
+> ⚠️ **家計簿アプリは「金融情報 > その他の金融情報」の申告を忘れない**。Apple の定義は
+> 「salary, income, assets, debts, **or any other financial information**」で、支出額・予算・精算額が該当する。
+> 初版でこれを「その他のユーザーコンテンツ」だけで済ませていたが、**過少申告は 5.1.1 のリジェクト要因**（過剰申告では落ちない）。
+>
+> 🔑 **トラッキングにチェックするのは `デバイスID` だけ**。
+> AdMob の `.xcprivacy` で `NSPrivacyCollectedDataTypeTracking = true` になっているのは **DeviceID のみ**で、
+> `AdvertisingData` を含む他はすべて `false`。（初版でここを「広告データも ✓」と誤記していたため訂正）
+> 上4種は自社データ（Supabase）。下7種は **AdMob SDK 同梱分**で、自社コードでは取得していないが申告義務がある。
 
 ### 注意（言ってはいけないこと）
 - ❌「レシート画像は端末外に出ない」→ **誤り**。Storage に保存される（ポリシー修正済み）
@@ -84,7 +95,45 @@
 メール: [連絡可能なメール]
 ```
 
-### 備考（Notes）— そのままコピペ可
+### 備考（Notes）— **英語版を使うこと**
+
+> ⚠️ 本アプリの ASC プライマリ言語は **英語（アメリカ）**。審査は英語圏のレビュアーに回る可能性が高いため、
+> メモは英語で入れる。日本語版は参考として下に残す。
+
+```
+[About the app]
+WeBudget is a household budgeting app for two people (couples/partners).
+When either partner records an expense, the app automatically calculates who
+has fronted how much, and the balance can be settled in one tap.
+
+[Demo account]
+The demo account above is email-verified and pre-loaded with sample data:
+a paired partner, expenses across several categories, an outstanding
+reimbursement balance, budgets, fixed costs, a joint account, and settlement
+history. You can review every feature immediately after signing in.
+Sign in with Apple also works, but it starts from an empty state, so please
+use the demo account above to see the full functionality.
+
+[Receipt OCR - please note]
+Receipt text recognition runs entirely ON DEVICE (on-device ML Kit). No image
+is sent to any external server for OCR. Only the saved receipt image is stored
+in our cloud storage (Supabase) so the user and their partner can view it later.
+This matches our Privacy Policy and our App Privacy declaration.
+
+[Ads and tracking]
+The app shows Google AdMob banner ads. On first launch we present the Google
+UMP consent form and the App Tracking Transparency prompt. All features remain
+fully available if the user declines tracking.
+
+[Account deletion]
+Settings > Account > Delete account. This removes the user's personal data on
+the server, and revokes the Apple token when Sign in with Apple was used.
+
+[Devices]
+Supports both iPhone and iPad.
+```
+
+### 備考（Notes）日本語版（参考・プライマリ言語を日本語にする場合に使う）
 
 ```
 【アプリ概要】

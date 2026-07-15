@@ -1,5 +1,9 @@
 # WeBudget リリース準備 総合チェックリスト
 
+> ## ✅ 2026-07-15 審査提出完了（v1.0.0 / build#21）
+> 以降は審査結果待ち。リジェクトされたら §4「リジェクト対策」を参照して対応する。
+> **本リリースで得た知見は `.skills`（`794f961`）の 07_monetization / 08_aso / 09_release に反映済み。**
+
 作成: 2026-07-12 / 対象: App Store 初回リリース v1.0.0（iOS 先行）
 関連: [pre_release_audit.md](pre_release_audit.md)（監査） / [.skills/08_aso/SKILL.md](../.skills/08_aso/SKILL.md) / [.skills/09_release/SKILL.md](../.skills/09_release/SKILL.md)
 
@@ -33,8 +37,8 @@
 | # | 項目 | 仕様 | 状態 | メモ |
 |---|------|------|------|------|
 | 2-1 | アプリアイコン | 1024×1024 透過なし | ✅ | `assets/icon.png` |
-| 2-2 | スクショ 6.9" iPhone | 1290×2796 | 🔲 | **必須**。撮る画面5枚＋ChatGPTプロンプト確定済 → 実機で撮影 |
-| 2-3 | スクショ 13" iPad | 2064×2752 | 🔲 | **必須**（iPad対応）。13"iPad実機は確保可（2026-07-14確認）→ iPad対応維持で進行 |
+| 2-2 | スクショ 6.9" iPhone | 1290×2796 | ✅ | **日英7枚ずつ完成** → `assets/store/out/ja-iphone` `en-iphone`。`scripts/make-store-screenshots.js` で生成（実スクショ無改変＝2.3.3準拠）|
+| 2-3 | スクショ 13" iPad | 2064×2752 | ✅ | **日英7枚ずつ完成** → `assets/store/out/ja-ipad` `en-ipad`。元は10.9"iPad(1640×2360)を2064×2752に合成 |
 | 2-4 | スクショのキャッチコピー | - | ✅ | 5枚分の日英コピー確定（screenshot_plan.md A章） |
 | 2-5 | プレビュー動画 | 任意 | ❓ | 作るなら後回しでOK |
 
@@ -84,7 +88,9 @@
 |---|------|------|------|
 | 7-1 | AdMob androidAppId が本番か | ⏸ | app.json のはテストID（`~3347511713`）だが **Android は今回出荷しないため保留でOK**。Android対応時に必須 |
 | 7-2 | 広告ユニットID（バナー/インタースティシャル）本番化 | ✅ | eas.json `production` に iOS本番ID設定済（banner `…/5911371023` / interstitial `…/6841309311`）。`ads.ts` は未設定時テストIDへフォールバックする安全設計 |
-| 7-3 | AdMob ATTメッセージ + GDPR同意フォーム構成 | 🔲 | AdMobコンソールで作成・公開（監査 A-6）。実機でATT表示確認 |
+| 7-3a | AdMob **IDFA説明メッセージ（ATT）** | ✅ | 2026-07-15 **公開済み**（名前:WeBudget ATT / アプリ:WeBudget紐付け済 / 日英2言語）。→ 実機で表示確認は残 |
+| 7-3b | AdMob **欧州の規制（GDPR）同意フォーム** | 🔲 | 全世界配信するなら必須。同じ「プライバシーとメッセージング」から作成→公開 |
+| 7-3c | 実機でATT/UMPダイアログ表示確認 | 🔲 | TestFlightのアプリを**一度削除**→再インストール→初回起動（ATTは一度答えると再表示されない）|
 | 7-4 | Apple Developer Program 登録 | ❓ | 登録済みか確認 |
 | 7-5 | App Store Connect にアプリ枠作成 | 🔲 | 新規App作成 |
 
@@ -95,8 +101,8 @@
 | 8-1 | `npx expo-doctor` / 検証ゲート通過 | ✅ | 2026-07-14: expo-doctor **18/18**、typecheck **0**、jest **189 passed / 9 suites**。EASログイン済（taishiro16）|
 | 8-2 | `eas build --platform ios --profile production` | ✅ | 2026-07-14 **完了**（build `2c072e53` / **build番号21** / commit `1833ee3` / 所要5分）。IPA取得可 |
 | 8-3 | TestFlight で実機確認 | 🔲 | ビルド完了後。**スクショ撮影もこのビルドで行う** |
-| 8-4 | `eas submit --platform ios` | 🔲 | |
-| 8-5 | 審査提出 | 🔲 | |
+| 8-4 | `eas submit --platform ios` | ✅ | 2026-07-15 build#21 を ASC へアップロード完了 |
+| 8-5 | **審査提出** | ✅ | **2026-07-15 提出済み**（v1.0.0 / build#21 / 日英2ロケール） |
 
 ## 9. 実機手動テスト（提出前）
 
